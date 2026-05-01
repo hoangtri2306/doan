@@ -1,0 +1,83 @@
+const commentRepository = require('../repositories/comment.repo');
+const moderationRepository = require('../repositories/moderation.repo');
+const userRepository = require('../repositories/user.repo');
+const aiService = require('./ai.service');
+
+class CommentService {
+  async createComment(user_id, data) {
+    const { post_id, parent_id, content } = data;
+    
+    // Analyze content with AI
+    const aiResult = await aiService.analyze(content);
+    const { spam_score, toxicity_score, label } = aiResult;
+    
+    const is_hidden = spam_score > 0.8;
+    
+    let depth = 0;
+    if (parent_id) {
+      const parentComment = await commentRepository.findById(parent_id);
+      if (parentComment) {
+        depth = parentComment.depth + 1;
+      }
+    }
+
+    const commentData = {
+      post_id,
+      author: user_id,
+      parent_id: parent_id || null,
+      depth,
+      content,
+      spam_score,
+      toxicity_score,
+      label,
+      is_hidden
+    };
+
+    const newComment = await commentRepository.create(commentData);
+
+    // If AI flags as SPAM or TOXIC, push to ModerationQueue & ModerationLog
+    if (label === 'SPAM' || label === 'TOXIC') {
+      await moderationRepository.addToQueue({
+        target_id: newComment._id,
+        target_model: 'Comment',
+        reason: `AI Flagged as ${label}`,
+        spam_score,
+        toxicity_score,
+        status: 'PENDING'
+      });
+
+      await moderationRepository.createLog({
+        target_id: newComment._id,
+        target_model: 'Comment',
+        action: 'QUEUED',
+        reason: `Auto-queued by AI with label ${label}`
+      });
+
+      // Update user violation stats
+      const user = await userRepository.findById(user_id);
+      if (user) {
+        let { spamCount, toxicCount } = user;
+        if (label === 'SPAM') spamCount += 1;
+        if (label === 'TOXIC') toxicCount += 1;
+        const violationScore = (spamCount * 1) + (toxicCount * 3); // Example scoring
+        
+        // Auto-status updates based on score
+        let status = user.status;
+        if (status !== 'BANNED') {
+          if (violationScore >= 10) status = 'BANNED';
+          else if (violationScore >= 5) status = 'WARNING';
+        }
+
+        await userRepository.update(user_id, { spamCount, toxicCount, violationScore, status });
+      }
+    }
+
+    return newComment;
+  }
+
+  async getCommentsByPost(post_id, skip = 0, limit = 20) {
+    return commentRepository.findByPostId(post_id, skip, limit);
+  }
+}
+
+module.exports = new CommentService();
