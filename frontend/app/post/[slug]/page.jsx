@@ -10,6 +10,7 @@ import CommentForm from '../../../components/CommentForm';
 import CommentItem from '../../../components/CommentItem';
 import { useAuth } from '../../../hooks/useAuth';
 import { useRouter } from 'next/navigation';
+import { formatDistanceToNow } from 'date-fns';
 
 export default function PostDetail() {
   const params = useParams();
@@ -113,10 +114,10 @@ export default function PostDetail() {
         </div>
         <div>
           <p className="text-gray-900 font-medium">{post.author?.username}</p>
-          <div className="flex text-sm text-gray-500 space-x-2">
-            <span>{post.reading_time || 1} min read</span>
-            <span>•</span>
-            <span>{new Date(post.createdAt).toLocaleDateString()}</span>
+          <div className="flex text-sm text-gray-500 space-x-2 mt-0.5">
+            <span>
+              {post.createdAt ? formatDistanceToNow(new Date(post.createdAt), { addSuffix: true }) : 'Vừa xong'}
+            </span>
           </div>
         </div>
       </div>

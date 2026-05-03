@@ -35,6 +35,36 @@ class CommentService {
 
     const newComment = await commentRepository.create(commentData);
 
+    // Notification Logic
+    const notificationService = require('./notification.service');
+    const Post = require('../models/Post');
+    
+    if (parent_id) {
+      // It's a REPLY
+      const parentComment = await commentRepository.findById(parent_id);
+      if (parentComment && parentComment.author.toString() !== user_id.toString()) {
+        await notificationService.sendNotification({
+          recipient: parentComment.author,
+          sender: user_id,
+          type: 'REPLY',
+          entity_id: newComment._id,
+          entity_model: 'Comment'
+        });
+      }
+    } else {
+      // It's a COMMENT on a Post
+      const post = await Post.findById(post_id);
+      if (post && post.author.toString() !== user_id.toString()) {
+        await notificationService.sendNotification({
+          recipient: post.author,
+          sender: user_id,
+          type: 'COMMENT',
+          entity_id: newComment._id,
+          entity_model: 'Comment'
+        });
+      }
+    }
+
     // If AI flags as SPAM or TOXIC, push to ModerationQueue & ModerationLog
     if (label === 'SPAM' || label === 'TOXIC') {
       await moderationRepository.addToQueue({

@@ -28,6 +28,32 @@ class NotificationController {
       next(error);
     }
   }
+
+  async markAllAsRead(req, res, next) {
+    try {
+      await notificationService.markAllAsRead(req.user.id);
+      res.status(200).json({
+        success: true,
+        message: 'All notifications marked as read',
+        data: null
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async delete(req, res, next) {
+    try {
+      await notificationService.deleteNotification(req.params.id);
+      res.status(200).json({
+        success: true,
+        message: 'Notification deleted successfully',
+        data: null
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 module.exports = new NotificationController();

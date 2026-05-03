@@ -15,8 +15,28 @@ class InteractionService {
         user_id, target_id, target_model, type
       });
 
-      // Notification logic can be triggered here if needed
-      // await notificationService.sendNotification(...)
+      if (type === 'LIKE') {
+        const Post = require('../models/Post');
+        const Comment = require('../models/Comment');
+        let authorId = null;
+        if (target_model === 'Post') {
+          const p = await Post.findById(target_id);
+          if (p && p.author.toString() !== user_id.toString()) authorId = p.author;
+        } else if (target_model === 'Comment') {
+          const c = await Comment.findById(target_id);
+          if (c && c.author.toString() !== user_id.toString()) authorId = c.author;
+        }
+
+        if (authorId) {
+          await notificationService.sendNotification({
+            recipient: authorId,
+            sender: user_id,
+            type: 'LIKE',
+            entity_id: target_id,
+            entity_model: target_model
+          });
+        }
+      }
 
       return { success: true, action: 'added', interaction };
     }

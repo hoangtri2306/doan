@@ -20,6 +20,51 @@ class PostService {
     return postRepository.create(postData);
   }
 
+  async repostPost(user_id, original_post_id, data = {}) {
+    // Check if already reposted
+    const existingRepost = await postRepository.findOne({
+      author: user_id,
+      original_post: original_post_id
+    });
+    
+    if (existingRepost) {
+      await postRepository.delete(existingRepost._id);
+      return { action: 'unreposted' };
+    }
+
+    const originalPost = await postRepository.findById(original_post_id);
+    if (!originalPost) throw new Error('Original post not found');
+    if (originalPost.visibility === 'PRIVATE') throw new Error('Cannot repost a private post');
+    if (originalPost.author._id.toString() === user_id.toString()) throw new Error('Cannot repost your own post');
+    
+    const postData = {
+      author: user_id,
+      title: `Repost: ${originalPost.title}`,
+      slug: `repost-${originalPost._id}-${Date.now()}`,
+      content_html: data.content_html || '<p></p>',
+      content_json: data.content_json || {},
+      status: 'PUBLISHED',
+      visibility: 'PUBLIC',
+      original_post: original_post_id,
+      reading_time: 1
+    };
+    
+    const newPost = await postRepository.create(postData);
+    
+    // Create notification
+    const notificationService = require('./notification.service');
+    
+    await notificationService.sendNotification({
+      recipient: originalPost.author._id,
+      sender: user_id,
+      type: 'REPOST',
+      entity_id: newPost._id,
+      entity_model: 'Post'
+    });
+    
+    return newPost;
+  }
+
   async getPost(id, current_user_id = null) {
     const post = await postRepository.findById(id);
     if (!post) return null;
@@ -27,10 +72,12 @@ class PostService {
     const postObj = post.toObject();
     postObj.likesCount = await interactionRepository.countInteractions(id, 'LIKE');
     postObj.bookmarksCount = await interactionRepository.countInteractions(id, 'BOOKMARK');
+    postObj.sharesCount = await postRepository.countReposts(id);
     
     if (current_user_id) {
       postObj.isLiked = !!(await interactionRepository.findInteraction(current_user_id, id, 'LIKE'));
       postObj.isBookmarked = !!(await interactionRepository.findInteraction(current_user_id, id, 'BOOKMARK'));
+      postObj.isReposted = !!(await postRepository.findOne({ author: current_user_id, original_post: id }));
     }
     
     return postObj;
@@ -43,10 +90,12 @@ class PostService {
     const postObj = post.toObject();
     postObj.likesCount = await interactionRepository.countInteractions(post._id, 'LIKE');
     postObj.bookmarksCount = await interactionRepository.countInteractions(post._id, 'BOOKMARK');
+    postObj.sharesCount = await postRepository.countReposts(post._id);
     
     if (current_user_id) {
       postObj.isLiked = !!(await interactionRepository.findInteraction(current_user_id, post._id, 'LIKE'));
       postObj.isBookmarked = !!(await interactionRepository.findInteraction(current_user_id, post._id, 'BOOKMARK'));
+      postObj.isReposted = !!(await postRepository.findOne({ author: current_user_id, original_post: post._id }));
     }
     
     return postObj;
@@ -117,12 +166,21 @@ class PostService {
     const likedPostIds = current_user_id ? await interactionRepository.findUserInteractions(current_user_id, postIds, 'LIKE') : [];
     const bookmarkedPostIds = current_user_id ? await interactionRepository.findUserInteractions(current_user_id, postIds, 'BOOKMARK') : [];
 
+    let repostedPostIds = [];
+    if (current_user_id) {
+      const Post = require('../models/Post');
+      const userReposts = await Post.find({ author: current_user_id, original_post: { $in: postIds } });
+      repostedPostIds = userReposts.map(rp => rp.original_post.toString());
+    }
+
     return Promise.all(posts.map(async (p) => {
       const pObj = p.toObject();
       pObj.likesCount = await interactionRepository.countInteractions(p._id, 'LIKE');
       pObj.bookmarksCount = await interactionRepository.countInteractions(p._id, 'BOOKMARK');
+      pObj.sharesCount = await postRepository.countReposts(p._id);
       pObj.isLiked = likedPostIds.includes(p._id.toString());
       pObj.isBookmarked = bookmarkedPostIds.includes(p._id.toString());
+      pObj.isReposted = repostedPostIds.includes(p._id.toString());
       return pObj;
     }));
   }

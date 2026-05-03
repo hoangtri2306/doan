@@ -13,7 +13,8 @@ const postSchema = new mongoose.Schema(
     cover_image: { type: String, default: '' },
     is_locked: { type: Boolean, default: false },
     is_sensitive: { type: Boolean, default: false },
-    tags: [{ type: String }]
+    tags: [{ type: String }],
+    original_post: { type: mongoose.Schema.Types.ObjectId, ref: 'Post', default: null }
   },
   { timestamps: true }
 );

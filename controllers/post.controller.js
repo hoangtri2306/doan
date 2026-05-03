@@ -14,6 +14,19 @@ class PostController {
     }
   }
 
+  async repost(req, res, next) {
+    try {
+      const post = await postService.repostPost(req.user.id, req.params.id, req.body);
+      res.status(201).json({
+        success: true,
+        message: 'Post reposted successfully',
+        data: post
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async getPost(req, res, next) {
     try {
       const post = await postService.getPost(req.params.id, req.user?.id);

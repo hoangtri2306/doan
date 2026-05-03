@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { useAuth } from '../hooks/useAuth';
 import { User, LogOut, PenSquare } from 'lucide-react';
 
+import NotificationBell from './NotificationBell';
+
 export default function Navbar() {
   const { isAuthenticated, user, logout } = useAuth();
 
@@ -28,6 +30,7 @@ export default function Navbar() {
                   <PenSquare className="w-5 h-5" />
                   <span className="hidden sm:inline">Write</span>
                 </Link>
+                <NotificationBell />
                 <Link href="/profile" className="text-gray-500 hover:text-gray-900">
                   <User className="w-6 h-6" />
                 </Link>

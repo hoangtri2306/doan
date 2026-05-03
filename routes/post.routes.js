@@ -10,6 +10,7 @@ router.get('/me/posts', authenticate, postController.getMyPosts);
 router.get('/me/bookmarks', authenticate, postController.getBookmarkedPosts);
 
 router.post('/', authenticate, postController.createPost);
+router.post('/:id/repost', authenticate, postController.repost);
 router.put('/:id', authenticate, postController.updatePost);
 router.delete('/:id', authenticate, postController.deletePost);
 
