@@ -104,7 +104,53 @@ class UserController {
 
   async getMe(req, res, next) {
     try {
-      res.status(200).json({ success: true, message: 'User retrieved', data: req.user });
+      const user = await userService.getUserById(req.user.id);
+      if (!user) return res.status(404).json({ success: false, message: 'User not found', data: null });
+      res.status(200).json({
+        success: true,
+        message: 'User retrieved',
+        data: {
+          id: user._id,
+          username: user.username,
+          email: user.email,
+          role: user.role,
+          avatar: user.avatar,
+          bio: user.bio
+        }
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getPublicProfile(req, res, next) {
+    try {
+      const { username } = req.params;
+      const user = await userService.getUserByUsername(username);
+      
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'User not found'
+        });
+      }
+
+      const postService = require('../services/post.service');
+      const posts = await postService.getPostsByUser(user._id, req.user?.id);
+
+      res.status(200).json({
+        success: true,
+        data: {
+          user: {
+            id: user._id,
+            username: user.username,
+            avatar: user.avatar,
+            bio: user.bio,
+            createdAt: user.createdAt
+          },
+          posts: posts
+        }
+      });
     } catch (error) {
       next(error);
     }

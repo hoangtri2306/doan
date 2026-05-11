@@ -8,16 +8,60 @@ class PostService {
     const wordCount = text.trim().split(/\s+/).length;
     const readingTime = Math.max(1, Math.ceil(wordCount / 200));
 
+    const titleForSlug = data.title || text.slice(0, 20) || 'post';
+    
+    // Analyze content with AI
+    const aiService = require('./ai.service');
+    const aiResult = await aiService.analyze(text);
+    const { spam_score, toxicity_score, label } = aiResult;
+    
     const postData = {
       ...data,
       author: user_id,
-      slug: data.title.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Date.now(),
+      slug: titleForSlug.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-') + '-' + Date.now(),
       content_json: data.content_json,
       content_html: data.content_html,
       tags: data.tags || [],
-      reading_time: readingTime
+      reading_time: readingTime,
+      is_sensitive: toxicity_score > 0.7,
+      visibility: spam_score > 0.8 ? 'HIDDEN' : (data.visibility || 'PUBLIC')
     };
-    return postRepository.create(postData);
+
+    const newPost = await postRepository.create(postData);
+
+    // If AI flags as SPAM or TOXIC, push to ModerationQueue
+    if (label === 'SPAM' || label === 'TOXIC') {
+      const moderationRepository = require('../repositories/moderation.repo');
+      const userRepository = require('../repositories/user.repo');
+
+      await moderationRepository.addToQueue({
+        target_id: newPost._id,
+        target_model: 'Post',
+        reason: `AI Flagged as ${label}`,
+        spam_score,
+        toxicity_score,
+        status: 'PENDING'
+      });
+
+      // Update user violation stats
+      const user = await userRepository.findById(user_id);
+      if (user) {
+        let { spamCount, toxicCount } = user;
+        if (label === 'SPAM') spamCount += 1;
+        if (label === 'TOXIC') toxicCount += 1;
+        const violationScore = (spamCount * 1) + (toxicCount * 3);
+        
+        let status = user.status;
+        if (status !== 'BANNED') {
+          if (violationScore >= 10) status = 'BANNED';
+          else if (violationScore >= 5) status = 'WARNING';
+        }
+
+        await userRepository.update(user_id, { spamCount, toxicCount, violationScore, status });
+      }
+    }
+
+    return newPost;
   }
 
   async repostPost(user_id, original_post_id, data = {}) {
@@ -140,6 +184,11 @@ class PostService {
   async getMyPosts(user_id) {
     const posts = await postRepository.findByAuthor(user_id);
     return this._enrichPosts(posts, user_id);
+  }
+
+  async getPostsByUser(user_id, current_user_id = null) {
+    const posts = await postRepository.findByAuthor(user_id);
+    return this._enrichPosts(posts, current_user_id);
   }
 
   async getBookmarkedPosts(user_id) {

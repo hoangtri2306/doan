@@ -25,6 +25,21 @@ export const hidePost = async (id) => {
   return data;
 };
 
+export const unhidePost = async (id) => {
+  const { data } = await api.put(`/admin/posts/${id}/unhide`);
+  return data;
+};
+
+export const markSensitive = async (id) => {
+  const { data } = await api.put(`/admin/posts/${id}/mark-sensitive`);
+  return data;
+};
+
+export const unmarkSensitive = async (id) => {
+  const { data } = await api.put(`/admin/posts/${id}/unmark-sensitive`);
+  return data;
+};
+
 export const getReports = async () => {
   const { data } = await api.get('/admin/reports');
   return data;

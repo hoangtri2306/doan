@@ -67,11 +67,15 @@ export default function ViolationsPage() {
       </div>
 
       <div className="flex gap-2 flex-wrap">
-        {['ALL', 'ACTIVE', 'MUTED', 'BANNED'].map(f => (
-          <button key={f} onClick={() => setFilter(f)} className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${filter === f ? 'bg-violet-500/20 text-violet-400 border border-violet-500/40' : 'bg-white/5 text-slate-500 border border-white/10 hover:text-slate-300'}`}>
-            {f}
-          </button>
-        ))}
+        {['ALL', 'ACTIVE', 'MUTED', 'BANNED'].map(f => {
+          const count = f === 'ALL' ? users.length : users.filter(u => u.status === f).length;
+          return (
+            <button key={f} onClick={() => setFilter(f)} className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all flex items-center gap-2 ${filter === f ? 'bg-violet-500/20 text-violet-400 border border-violet-500/40' : 'bg-white/5 text-slate-500 border border-white/10 hover:text-slate-300'}`}>
+              {f}
+              <span className={`px-1.5 rounded ${filter === f ? 'bg-violet-500/30' : 'bg-white/5'}`}>{count}</span>
+            </button>
+          );
+        })}
       </div>
 
       <div className="rounded-2xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
@@ -103,9 +107,15 @@ export default function ViolationsPage() {
                 <div className="col-span-2 text-center text-slate-400 text-sm font-bold">{user.toxicCount ?? 0}</div>
                 <div className="col-span-1 text-center font-bold" style={{ color: user.violationScore > 10 ? '#f87171' : user.violationScore > 5 ? '#fbbf24' : '#94a3b8' }}>{user.violationScore ?? 0}</div>
                 <div className="col-span-1 flex justify-end gap-1">
-                   <button onClick={() => handleAction('RESET', user.userId)} className="p-1.5 rounded-lg hover:bg-green-500/10 text-slate-500 hover:text-green-400 transition-colors" title="Reset score">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-                   </button>
+                  <button onClick={() => handleAction('MUTE', user.userId)} disabled={user.status === 'MUTED' || !!actionLoading} className="p-1.5 rounded-lg hover:bg-slate-500/10 text-slate-500 hover:text-slate-300 transition-colors disabled:opacity-30" title="Mute user">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" /></svg>
+                  </button>
+                  <button onClick={() => handleAction('BAN', user.userId)} disabled={user.status === 'BANNED' || !!actionLoading} className="p-1.5 rounded-lg hover:bg-red-500/10 text-slate-500 hover:text-red-400 transition-colors disabled:opacity-30" title="Ban user">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg>
+                  </button>
+                  <button onClick={() => handleAction('RESET', user.userId)} disabled={!!actionLoading} className="p-1.5 rounded-lg hover:bg-green-500/10 text-slate-500 hover:text-green-400 transition-colors" title="Reset score">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                  </button>
                 </div>
               </div>
             );

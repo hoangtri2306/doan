@@ -4,6 +4,7 @@ import { createContext, useContext, useState, useEffect } from 'react';
 import { getToken, removeToken } from '../utils/token';
 import { logout as logoutService } from '../services/auth.service';
 import { useRouter } from 'next/navigation';
+import api from '../services/api';
 
 const AuthContext = createContext();
 
@@ -14,34 +15,64 @@ export const AuthProvider = ({ children }) => {
   const router = useRouter();
 
   useEffect(() => {
-    const token = getToken();
-    if (token) {
-      // Restore user from localStorage (saved at login time)
-      const savedUser = localStorage.getItem('user');
-      if (savedUser) {
+    const init = async () => {
+      const token = getToken();
+      if (!token) {
+        setLoading(false);
+        return;
+      }
+
+      // Restore from localStorage immediately (fast path)
+      const saved = localStorage.getItem('user');
+      if (saved) {
         try {
-          setUser(JSON.parse(savedUser));
+          setUser(JSON.parse(saved));
           setIsAuthenticated(true);
         } catch {
           localStorage.removeItem('user');
         }
-      } else {
-        // Token exists but no user data — treat as unauthenticated
-        setIsAuthenticated(false);
       }
-    }
-    setLoading(false);
+
+      // Then fetch fresh profile from server to get latest username/avatar/bio
+      try {
+        const { data } = await api.get('/users/me');
+        if (data?.success && data?.data) {
+          const fresh = data.data;
+          setUser(fresh);
+          setIsAuthenticated(true);
+          localStorage.setItem('user', JSON.stringify(fresh));
+        }
+      } catch {
+        // If /me fails (token expired etc.), clear session
+        removeToken();
+        localStorage.removeItem('user');
+        setUser(null);
+        setIsAuthenticated(false);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    init();
   }, []);
 
   const login = (userData) => {
     setUser(userData);
     setIsAuthenticated(true);
-    // Persist user data so role survives page refresh
     localStorage.setItem('user', JSON.stringify(userData));
   };
 
+  // Merge partial fields (e.g. after profile update)
+  const updateUser = (partial) => {
+    setUser(prev => {
+      const merged = { ...prev, ...partial };
+      localStorage.setItem('user', JSON.stringify(merged));
+      return merged;
+    });
+  };
+
   const logout = async () => {
-    await logoutService();
+    try { await logoutService(); } catch {}
     removeToken();
     localStorage.removeItem('user');
     setUser(null);
@@ -50,7 +81,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, isAuthenticated, loading, login, updateUser, logout }}>
       {children}
     </AuthContext.Provider>
   );

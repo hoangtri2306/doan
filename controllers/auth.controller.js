@@ -45,6 +45,23 @@ class AuthController {
       });
     }
   }
+
+  async refresh(req, res) {
+    try {
+      const { refreshToken } = req.body;
+      const data = await authService.refreshToken(refreshToken);
+      res.status(200).json({
+        success: true,
+        data,
+        message: 'Token refreshed successfully'
+      });
+    } catch (error) {
+      res.status(401).json({
+        success: false,
+        message: error.message
+      });
+    }
+  }
 }
 
 module.exports = new AuthController();

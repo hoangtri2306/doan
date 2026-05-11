@@ -33,11 +33,25 @@ export default function EditProfile() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
     setIsSubmitting(true);
     try {
-      const { data } = await updateProfile({ avatar, bio, username });
-      // Update local context
-      login(data);
+      const res = await updateProfile({ avatar, bio, username });
+      // res.data is the updated user object from the server
+      const updatedUser = res.data;
+
+      // Normalize to the same shape stored at login time
+      const normalizedUser = {
+        id: updatedUser.id || updatedUser._id,
+        username: updatedUser.username,
+        email: updatedUser.email,
+        role: updatedUser.role,
+        avatar: updatedUser.avatar || '',
+        bio: updatedUser.bio || ''
+      };
+
+      // Update context + localStorage
+      login(normalizedUser);
       router.push('/profile');
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to update profile');

@@ -1,7 +1,8 @@
 import api from './api';
 
-export const getPosts = async (skip = 0, limit = 10, tag = '') => {
-  const url = tag ? `/posts?skip=${skip}&limit=${limit}&tag=${encodeURIComponent(tag)}` : `/posts?skip=${skip}&limit=${limit}`;
+export const getPosts = async (skip = 0, limit = 10, tags = '') => {
+  const tagParam = Array.isArray(tags) ? tags.join(',') : tags;
+  const url = tagParam ? `/posts?skip=${skip}&limit=${limit}&tag=${encodeURIComponent(tagParam)}` : `/posts?skip=${skip}&limit=${limit}`;
   const { data } = await api.get(url);
   return data;
 };

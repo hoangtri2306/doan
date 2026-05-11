@@ -47,6 +47,8 @@ export default function AdminReportsPage() {
     USER: { bg: 'rgba(239,68,68,0.15)', color: '#f87171' },
   };
 
+  const getPlainText = (html) => html?.replace(/<[^>]+>/g, '').slice(0, 100) || 'No content';
+
   return (
     <div className="space-y-5">
       {toast && (
@@ -82,7 +84,7 @@ export default function AdminReportsPage() {
                     <div className="bg-white/5 p-3 rounded-lg border border-white/5">
                        <p className="text-xs text-slate-500 mb-1 uppercase font-bold tracking-wider">Reported Content:</p>
                        <p className="text-white text-sm font-medium">
-                          {report.target_model === 'Post' ? report.target_data.title : report.target_data.content}
+                          {report.target_model === 'Post' ? getPlainText(report.target_data.content_html) : report.target_data.content}
                        </p>
                     </div>
                   )}

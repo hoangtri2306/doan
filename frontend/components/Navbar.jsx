@@ -31,8 +31,18 @@ export default function Navbar() {
                   <span className="hidden sm:inline">Write</span>
                 </Link>
                 <NotificationBell />
-                <Link href="/profile" className="text-gray-500 hover:text-gray-900">
-                  <User className="w-6 h-6" />
+                <Link href="/profile" className="text-gray-500 hover:text-gray-900 focus:outline-none flex items-center">
+                  {user?.avatar || user?.avatar_url ? (
+                    <img 
+                      src={user.avatar || user.avatar_url} 
+                      alt="Profile" 
+                      className="w-8 h-8 rounded-full object-cover border border-gray-200 hover:ring-2 hover:ring-gray-300 transition-all" 
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 font-bold text-sm border border-gray-300 hover:ring-2 hover:ring-gray-300 transition-all">
+                      {user?.username ? user.username.charAt(0).toUpperCase() : <User className="w-5 h-5" />}
+                    </div>
+                  )}
                 </Link>
                 <button onClick={logout} className="text-gray-500 hover:text-red-600">
                   <LogOut className="w-5 h-5" />

@@ -68,6 +68,14 @@ class UserService {
     };
   }
 
+  async getUserById(id) {
+    return userRepository.findById(id);
+  }
+
+  async getUserByUsername(username) {
+    return userRepository.findByUsername(username);
+  }
+
   async updateProfile(user_id, data) {
     const updateData = {};
     if (data.avatar !== undefined) updateData.avatar = data.avatar;

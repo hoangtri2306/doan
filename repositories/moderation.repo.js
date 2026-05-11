@@ -1,6 +1,11 @@
+const mongoose = require('mongoose');
 const ModerationQueue = require('../models/ModerationQueue');
 const ModerationLog = require('../models/ModerationLog');
 const Report = require('../models/Report');
+
+// Ensure models are registered for population
+if (!mongoose.models.Post) require('../models/Post');
+if (!mongoose.models.Comment) require('../models/Comment');
 
 class ModerationRepository {
   async addToQueue(queueData) {

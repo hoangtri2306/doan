@@ -87,7 +87,11 @@ export default function ModerationQueue() {
                 </div>
               </div>
               <div className="p-4 rounded-xl mb-4" style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                <p className="text-slate-300 text-sm">{item.target_id?.content || 'Content unavailable'}</p>
+                <p className="text-slate-300 text-sm">
+                  {item.target_model === 'Post' 
+                    ? (item.target_id?.content_html?.replace(/<[^>]+>/g, '').slice(0, 150) || 'No content')
+                    : (item.target_id?.content || 'Content unavailable')}
+                </p>
               </div>
               <div className="flex gap-3 justify-end">
                 <button onClick={() => handleAction('APPROVE', item._id)} disabled={!!actionLoading} className="px-4 py-2 rounded-xl text-sm font-semibold" style={{ background: 'rgba(16,185,129,0.15)', color: '#34d399', border: '1px solid rgba(16,185,129,0.3)' }}>Approve</button>

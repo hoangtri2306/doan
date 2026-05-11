@@ -73,9 +73,39 @@ class AuthService {
       user: {
         id: user._id.toString(),
         email: user.email,
-        role: user.role
+        username: user.username,
+        role: user.role,
+        avatar: user.avatar,
+        bio: user.bio
       }
     };
+  }
+
+  async refreshToken(token) {
+    if (!token) throw new Error('Refresh token is required');
+
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET);
+      
+      // Verify user still exists and not deleted
+      const user = await User.findById(decoded.userId);
+      if (!user || user.isDeleted) {
+        throw new Error('User not found or deleted');
+      }
+
+      const payload = {
+        userId: user._id.toString(),
+        role: user.role
+      };
+
+      const accessToken = jwt.sign(payload, process.env.JWT_ACCESS_SECRET, {
+        expiresIn: process.env.JWT_ACCESS_EXPIRE || '15m'
+      });
+
+      return { accessToken };
+    } catch (error) {
+      throw new Error('Invalid or expired refresh token');
+    }
   }
 }
 

@@ -19,7 +19,7 @@ const authMiddleware = (req, res, next) => {
     
     // Attach user to request
     req.user = {
-      id: decoded.userId,
+      id: decoded.userId || decoded.id,
       role: decoded.role
     };
     
@@ -47,7 +47,7 @@ const optionalAuthenticate = (req, res, next) => {
 
     const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
-    req.user = { id: decoded.userId, role: decoded.role };
+    req.user = { id: decoded.userId || decoded.id, role: decoded.role };
     next();
   } catch (error) {
     // Even if token is invalid, we treat them as guest instead of throwing 401

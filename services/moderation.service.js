@@ -25,17 +25,21 @@ class ModerationService {
   }
 
   async getQueue() {
-    return moderationRepository.getPendingQueue();
+    const queue = await moderationRepository.getPendingQueue();
+    // Filter out items where the target content was deleted
+    return queue.filter(item => item.target_id !== null);
   }
 
   async approve(queueId) {
     const item = await moderationRepository.findQueueItemById(queueId);
     if (!item) throw new Error('Queue item not found');
 
-    // If it's a Comment, set is_hidden to false since it's approved
     if (item.target_model === 'Comment') {
       const Comment = require('../models/Comment');
       await Comment.findByIdAndUpdate(item.target_id, { is_hidden: false });
+    } else if (item.target_model === 'Post') {
+      const Post = require('../models/Post');
+      await Post.findByIdAndUpdate(item.target_id, { visibility: 'PUBLIC' });
     }
 
     return moderationRepository.updateQueueItem(queueId, { status: 'REVIEWED' });
@@ -48,6 +52,9 @@ class ModerationService {
     if (item.target_model === 'Comment') {
       const Comment = require('../models/Comment');
       await Comment.findByIdAndUpdate(item.target_id, { is_hidden: true });
+    } else if (item.target_model === 'Post') {
+      const Post = require('../models/Post');
+      await Post.findByIdAndUpdate(item.target_id, { visibility: 'HIDDEN' });
     }
 
     return moderationRepository.updateQueueItem(queueId, { status: 'REVIEWED' });

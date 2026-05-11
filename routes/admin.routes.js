@@ -12,6 +12,9 @@ router.put('/users/:id/role', adminController.changeRole);
 
 router.get('/posts', adminController.getPosts);
 router.put('/posts/:id/hide', adminController.hidePost);
+router.put('/posts/:id/unhide', adminController.unhidePost);
+router.put('/posts/:id/mark-sensitive', adminController.markSensitive);
+router.put('/posts/:id/unmark-sensitive', adminController.unmarkSensitive);
 
 router.get('/reports', adminController.getReports);
 router.put('/reports/:id/resolve', adminController.resolveReport);

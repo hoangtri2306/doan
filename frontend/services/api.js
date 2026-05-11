@@ -1,9 +1,9 @@
 import axios from 'axios';
-import { getToken } from '../utils/token';
+import { getToken, getRefreshToken, setToken, removeToken } from '../utils/token';
 
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api',
-  withCredentials: true // For refresh token cookies if needed
+  withCredentials: true
 });
 
 api.interceptors.request.use(
@@ -17,16 +17,63 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// We can add response interceptors to handle 401 & refresh token logic later
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error, token = null) => {
+  failedQueue.forEach(prom => {
+    if (error) prom.reject(error);
+    else prom.resolve(token);
+  });
+  failedQueue = [];
+};
+
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response && error.response.status === 401) {
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('accessToken');
-        window.location.href = '/login';
+  async (error) => {
+    const originalRequest = error.config;
+
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        })
+          .then(token => {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+            return api(originalRequest);
+          })
+          .catch(err => Promise.reject(err));
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      const refreshToken = getRefreshToken();
+      if (!refreshToken) {
+        removeToken();
+        if (typeof window !== 'undefined') window.location.href = '/login';
+        return Promise.reject(error);
+      }
+
+      try {
+        const { data } = await axios.post(`${api.defaults.baseURL}/auth/refresh`, { refreshToken });
+        const { accessToken } = data.data;
+        
+        setToken(accessToken);
+        processQueue(null, accessToken);
+        
+        originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+        return api(originalRequest);
+      } catch (err) {
+        processQueue(err, null);
+        removeToken();
+        if (typeof window !== 'undefined') window.location.href = '/login';
+        return Promise.reject(err);
+      } finally {
+        isRefreshing = false;
       }
     }
+
     return Promise.reject(error);
   }
 );

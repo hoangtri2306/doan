@@ -4,22 +4,20 @@ const User = require('../models/User');
 class AdminController {
   async getViolations(req, res, next) {
     try {
-      // Find all users who have a violation score > 0 or status != 'ACTIVE'
-      const users = await User.find({
-        $or: [
-          { violationScore: { $gt: 0 } },
-          { status: { $ne: 'ACTIVE' } }
-        ]
-      }).select('_id email spamCount toxicCount violationScore status');
+      // Fetch all users using repository
+      const users = await userRepository.findAll();
+      
+      // Sort by violation score descending
+      users.sort((a, b) => (b.violationScore || 0) - (a.violationScore || 0));
 
       // Map to desired response format
       const data = users.map(u => ({
-        userId: u._id,
+        userId: u._id.toString(),
         email: u.email,
-        spamCount: u.spamCount,
-        toxicCount: u.toxicCount,
-        violationScore: u.violationScore,
-        status: u.status
+        spamCount: u.spamCount || 0,
+        toxicCount: u.toxicCount || 0,
+        violationScore: u.violationScore || 0,
+        status: u.status || 'ACTIVE'
       }));
 
       res.status(200).json({ success: true, message: 'Violations retrieved', data });
@@ -62,8 +60,38 @@ class AdminController {
   async hidePost(req, res, next) {
     try {
       const Post = require('../models/Post');
-      const post = await Post.findByIdAndUpdate(req.params.id, { visibility: 'PRIVATE' }, { new: true });
+      const post = await Post.findByIdAndUpdate(req.params.id, { visibility: 'HIDDEN' }, { new: true });
       res.status(200).json({ success: true, message: 'Post hidden', data: post });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async unhidePost(req, res, next) {
+    try {
+      const Post = require('../models/Post');
+      const post = await Post.findByIdAndUpdate(req.params.id, { visibility: 'PUBLIC' }, { new: true });
+      res.status(200).json({ success: true, message: 'Post restored', data: post });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async markSensitive(req, res, next) {
+    try {
+      const Post = require('../models/Post');
+      const post = await Post.findByIdAndUpdate(req.params.id, { is_sensitive: true }, { new: true });
+      res.status(200).json({ success: true, message: 'Post marked as sensitive', data: post });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async unmarkSensitive(req, res, next) {
+    try {
+      const Post = require('../models/Post');
+      const post = await Post.findByIdAndUpdate(req.params.id, { is_sensitive: false }, { new: true });
+      res.status(200).json({ success: true, message: 'Sensitive mark removed', data: post });
     } catch (error) {
       next(error);
     }
@@ -82,7 +110,7 @@ class AdminController {
       const enrichedReports = await Promise.all(reports.map(async (report) => {
         const reportObj = report.toObject();
         if (report.target_model === 'Post') {
-          const post = await Post.findById(report.target_id).select('title slug');
+          const post = await Post.findById(report.target_id).select('content_html slug');
           reportObj.target_data = post;
         } else if (report.target_model === 'Comment') {
           const comment = await Comment.findById(report.target_id).select('content');
@@ -109,7 +137,7 @@ class AdminController {
 
       if (action === 'HIDE') {
         if (report.target_model === 'Post') {
-          await Post.findByIdAndUpdate(report.target_id, { visibility: 'PRIVATE' });
+          await Post.findByIdAndUpdate(report.target_id, { visibility: 'HIDDEN' });
         } else if (report.target_model === 'Comment') {
           await Comment.findByIdAndDelete(report.target_id);
         }
@@ -126,7 +154,7 @@ class AdminController {
 
       res.status(200).json({ 
         success: true, 
-        message: action === 'HIDE' ? 'Content hidden and report resolved' : 'Report dismissed', 
+        message: action === 'HIDE' ? 'Content hidden and report resolved' : 'Report resolved', 
         data: report 
       });
     } catch (error) {

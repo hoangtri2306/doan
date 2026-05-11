@@ -13,8 +13,16 @@ class UserRepository {
     return User.findOne({ _id: id, isDeleted: false }).select('-password');
   }
 
+  async findByUsername(username) {
+    return User.findOne({ username, isDeleted: false }).select('-password');
+  }
+
   async update(id, updateData) {
     return User.findByIdAndUpdate(id, updateData, { new: true }).select('-password');
+  }
+
+  async findAll(query = {}) {
+    return User.find(query).select('-password');
   }
 }
 

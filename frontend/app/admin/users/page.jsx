@@ -126,11 +126,10 @@ export default function UsersPage() {
 
       <div className="rounded-2xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
         <div className="grid grid-cols-12 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)' }}>
-          <div className="col-span-4">User</div>
-          <div className="col-span-2 text-center">Status</div>
+          <div className="col-span-5">User</div>
+          <div className="col-span-3 text-center">Status</div>
           <div className="col-span-2 text-center">Role</div>
-          <div className="col-span-2 text-center">Score</div>
-          <div className="col-span-2 text-right">Actions</div>
+          <div className="col-span-2 text-right">Violation Score</div>
         </div>
 
         {loading ? (
@@ -143,7 +142,7 @@ export default function UsersPage() {
             const statusStyle = STATUS_COLORS[user.status] || STATUS_COLORS.ACTIVE;
             return (
               <div key={user._id} className="grid grid-cols-12 px-5 py-3.5 items-center hover:bg-white/[0.02] transition-colors" style={{ borderBottom: idx < filtered.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
-                <div className="col-span-4 flex items-center gap-3">
+                <div className="col-span-5 flex items-center gap-3">
                   <div className="w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center text-white text-sm font-bold" style={{ background: 'linear-gradient(135deg, rgba(124,58,237,0.5), rgba(79,70,229,0.3))', border: '1px solid rgba(124,58,237,0.3)' }}>
                     {user.avatar ? <img src={user.avatar} alt="" className="w-full h-full rounded-full object-cover" /> : user.email?.[0]?.toUpperCase()}
                   </div>
@@ -152,7 +151,7 @@ export default function UsersPage() {
                     <p className="text-slate-500 text-xs truncate">{user.email}</p>
                   </div>
                 </div>
-                <div className="col-span-2 flex justify-center">
+                <div className="col-span-3 flex justify-center">
                   <span className="px-2.5 py-1 rounded-full text-xs font-semibold" style={{ background: statusStyle.bg, color: statusStyle.color }}>{user.status || 'ACTIVE'}</span>
                 </div>
                 <div className="col-span-2 flex justify-center">
@@ -162,11 +161,7 @@ export default function UsersPage() {
                     <option value="ADMIN" style={{ background: '#1a1d2e' }}>ADMIN</option>
                   </select>
                 </div>
-                <div className="col-span-2 text-center text-sm font-bold text-slate-400">{user.violationScore ?? 0}</div>
-                <div className="col-span-2 flex justify-end gap-1">
-                  {user.status !== 'BANNED' && <button onClick={() => handleAction('BAN', user._id, user.username || user.email)} className="px-2 py-1 rounded-lg text-xs font-medium" style={{ background: 'rgba(239,68,68,0.15)', color: '#f87171', border: '1px solid rgba(239,68,68,0.25)' }}>Ban</button>}
-                  {user.status !== 'ACTIVE' && <button onClick={() => handleAction('RESET', user._id, user.username || user.email)} className="px-2 py-1 rounded-lg text-xs font-medium" style={{ background: 'rgba(16,185,129,0.15)', color: '#34d399', border: '1px solid rgba(16,185,129,0.25)' }}>Restore</button>}
-                </div>
+                <div className="col-span-2 text-right pr-4 text-sm font-bold text-slate-400">{user.violationScore ?? 0}</div>
               </div>
             );
           })

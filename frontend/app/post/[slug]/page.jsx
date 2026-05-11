@@ -10,7 +10,9 @@ import CommentForm from '../../../components/CommentForm';
 import CommentItem from '../../../components/CommentItem';
 import { useAuth } from '../../../hooks/useAuth';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
+import MediaGrid from '../../../components/MediaGrid';
 
 export default function PostDetail() {
   const params = useParams();
@@ -82,12 +84,9 @@ export default function PostDetail() {
 
   return (
     <article className="max-w-2xl mx-auto py-8">
-      <div className="flex justify-between items-start mb-6">
-        <h1 className="text-4xl md:text-5xl font-bold font-serif text-gray-900 leading-tight">
-          {post.title}
-        </h1>
+      <div className="flex justify-end items-center mb-6">
         {user?.id === post.author?._id && (
-          <div className="flex space-x-4 shrink-0 ml-4">
+          <div className="flex space-x-4 shrink-0">
             <button 
               onClick={() => router.push(`/edit/${post.slug}`)}
               className="text-[#1a8917] hover:text-[#156d12] text-sm font-medium"
@@ -105,15 +104,15 @@ export default function PostDetail() {
       </div>
       
       <div className="flex items-center space-x-3 mb-8">
-        <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
+        <Link href={`/u/${post.author?.username}`} className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden hover:opacity-80 transition-opacity">
           {post.author?.avatar ? (
             <img src={post.author.avatar} alt="Author" className="w-full h-full object-cover" />
           ) : (
             <span className="text-xl text-gray-500">{post.author?.username?.charAt(0).toUpperCase()}</span>
           )}
-        </div>
+        </Link>
         <div>
-          <p className="text-gray-900 font-medium">{post.author?.username}</p>
+          <Link href={`/u/${post.author?.username}`} className="text-gray-900 font-medium hover:text-[#1a8917] transition-colors">{post.author?.username}</Link>
           <div className="flex text-sm text-gray-500 space-x-2 mt-0.5">
             <span>
               {post.createdAt ? formatDistanceToNow(new Date(post.createdAt), { addSuffix: true }) : 'Vừa xong'}
@@ -123,9 +122,15 @@ export default function PostDetail() {
       </div>
 
       <div 
-        className="prose prose-lg max-w-none text-gray-800 font-serif leading-relaxed"
+        className="prose prose-lg max-w-none text-gray-800 font-serif leading-relaxed mb-6"
         dangerouslySetInnerHTML={{ __html: post.content_html }}
       />
+
+      {post.media && post.media.length > 0 && (
+        <div className="mb-8">
+          <MediaGrid media={post.media} />
+        </div>
+      )}
 
       <InteractionBar 
         targetId={post._id} 
@@ -134,6 +139,8 @@ export default function PostDetail() {
         initialBookmarks={post.bookmarksCount}
         initialIsLiked={post.isLiked}
         initialIsBookmarked={post.isBookmarked}
+        initialShares={post.sharesCount}
+        initialIsReposted={post.isReposted}
       />
 
       {/* Comments Section */}

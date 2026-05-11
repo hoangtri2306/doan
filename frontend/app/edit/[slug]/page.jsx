@@ -50,11 +50,11 @@ export default function EditPost() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!title || !content) return;
+    if (!content) return;
     try {
       const tagArray = tags.split(',').map(t => t.trim()).filter(t => t.length > 0);
       await updatePost(post._id, {
-        title,
+        title: '', // User wants no titles
         content_html: `<p>${content.replace(/\n/g, '<br/>')}</p>`,
         content_json: { text: content },
         tags: tagArray
@@ -78,13 +78,6 @@ export default function EditPost() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        <input
-          type="text"
-          placeholder="Title"
-          className="w-full text-4xl font-serif font-bold text-gray-900 placeholder-gray-300 bg-transparent border-none focus:ring-0 focus:outline-none"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-        />
         <input
           type="text"
           placeholder="Tags (comma separated)..."

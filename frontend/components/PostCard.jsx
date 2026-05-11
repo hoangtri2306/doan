@@ -4,8 +4,9 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { toggleInteraction, bookmarkPost, unbookmarkPost } from '../services/interaction.service';
 import { useAuth } from '../hooks/useAuth';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Repeat, Quote, Check, Heart, Bookmark, MessageCircle } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import MediaGrid from './MediaGrid';
 
 export default function PostCard({ post: initialPost }) {
   const { isAuthenticated, user } = useAuth();
@@ -16,36 +17,30 @@ export default function PostCard({ post: initialPost }) {
   const [sharesCount, setSharesCount] = useState(initialPost.sharesCount || 0);
   const [revealed, setRevealed] = useState(false);
   const [deleted, setDeleted] = useState(false);
+  const [showRepostMenu, setShowRepostMenu] = useState(false);
 
   const isRepost = !!initialPost.original_post;
   const displayPost = isRepost ? initialPost.original_post : initialPost;
-  
+
   const amIAuthorOfRepost = isRepost && isAuthenticated && user?.id === initialPost.author?._id;
   const [reposted, setReposted] = useState(amIAuthorOfRepost || initialPost.isReposted || false);
 
   if (deleted) return null;
   const isSensitive = displayPost.is_sensitive && !revealed;
 
-
-
   const handleLike = async (e) => {
-    e.preventDefault();
-    e.stopPropagation();
+    e.preventDefault(); e.stopPropagation();
     if (!isAuthenticated) return alert('Please login first');
     try {
       const newStatus = !liked;
       setLiked(newStatus);
       setLikesCount(prev => newStatus ? prev + 1 : Math.max(0, prev - 1));
       await toggleInteraction(initialPost._id, 'Post', 'LIKE');
-    } catch (error) {
-      setLiked(liked);
-      setLikesCount(likesCount);
-    }
+    } catch { setLiked(liked); setLikesCount(likesCount); }
   };
 
   const handleBookmark = async (e) => {
-    e.preventDefault();
-    e.stopPropagation();
+    e.preventDefault(); e.stopPropagation();
     if (!isAuthenticated) return alert('Please login first');
     try {
       const newStatus = !bookmarked;
@@ -53,123 +48,194 @@ export default function PostCard({ post: initialPost }) {
       setBookmarksCount(prev => newStatus ? prev + 1 : Math.max(0, prev - 1));
       if (newStatus) await bookmarkPost(initialPost._id);
       else await unbookmarkPost(initialPost._id);
-    } catch (error) {
-      setBookmarked(bookmarked);
-      setBookmarksCount(bookmarksCount);
-    }
+    } catch { setBookmarked(bookmarked); setBookmarksCount(bookmarksCount); }
   };
 
+  const handleRepost = async (e) => {
+    e.preventDefault(); e.stopPropagation();
+    if (!isAuthenticated) return alert('Please login first');
+    try {
+      const api = require('../services/api').default;
+      const res = await api.post(`/posts/${displayPost._id}/repost`, {});
+      if (res.data.data?.action === 'unreposted') {
+        setSharesCount(prev => Math.max(0, prev - 1));
+        setReposted(false);
+        if (amIAuthorOfRepost) setDeleted(true);
+      } else {
+        setSharesCount(prev => prev + 1);
+        setReposted(true);
+      }
+    } catch (err) { alert(err.response?.data?.message || 'Error reposting'); }
+  };
+
+  const plainText = displayPost.content_html
+    ? displayPost.content_html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+    : '';
+
+  const hasTitle = displayPost.title && displayPost.title !== 'No Title' && displayPost.title !== 'Untitled';
+  const hasMedia = displayPost.media && displayPost.media.length > 0;
+
   return (
-    <div className="group/card border-b border-gray-100 py-8 mb-4 transition-all hover:bg-gray-50/50 -mx-4 px-4 rounded-2xl relative">
+    <article className="group relative py-7 border-b border-neutral-100 last:border-b-0">
+      {/* Sensitive overlay */}
       {isSensitive && (
-        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/60 backdrop-blur-md rounded-2xl cursor-pointer p-6 text-center" onClick={() => setRevealed(true)}>
-          <AlertTriangle className="w-8 h-8 text-amber-500 mb-2" />
-          <p className="text-gray-900 font-bold">Sensitive Content</p>
-          <p className="text-gray-500 text-xs mt-1">This post may contain sensitive material. Click to view.</p>
+        <div
+          className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/70 backdrop-blur-sm cursor-pointer rounded-lg"
+          onClick={() => setRevealed(true)}
+        >
+          <AlertTriangle className="w-7 h-7 text-amber-400 mb-2" />
+          <p className="text-sm font-semibold text-gray-700">Sensitive Content</p>
+          <p className="text-xs text-gray-400 mt-0.5">Click to reveal</p>
         </div>
       )}
-      
+
+      {/* Repost indicator */}
       {isRepost && (
-        <div className="flex items-center text-xs text-gray-500 mb-3 font-medium">
-          <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-          </svg>
-          <span>{initialPost.author?.username} reposted</span>
-        </div>
-      )}
-      
-      {initialPost.content_html && isRepost && (
-         <div className="mb-4 text-gray-700 text-sm italic border-l-2 border-gray-200 pl-3">
-           {initialPost.content_html.replace(/<[^>]+>/g, '')}
-         </div>
-      )}
-      <div className={`flex items-center space-x-2 mb-3 ${isSensitive ? 'blur-sm select-none' : ''}`}>
-        <div className="w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden ring-1 ring-gray-100 group-hover/card:ring-gray-200 transition-all">
-          {displayPost.author?.avatar ? (
-            <img src={displayPost.author.avatar} alt={displayPost.author.username} className="w-full h-full object-cover" />
-          ) : (
-            <span className="text-xs text-gray-500 font-bold">{displayPost.author?.username?.charAt(0).toUpperCase()}</span>
-          )}
-        </div>
-        <span className="text-sm text-gray-800 font-semibold hover:underline cursor-pointer">{displayPost.author?.username}</span>
-        <span className="text-xs text-gray-400">•</span>
-        <span className="text-xs text-gray-500">
-          {displayPost.createdAt ? formatDistanceToNow(new Date(displayPost.createdAt), { addSuffix: true }) : 'Vừa xong'}
-        </span>
-        
-      </div>
-      
-      <div className={`flex gap-6 ${isSensitive ? 'blur-sm select-none' : ''} ${isRepost ? 'border border-gray-100 p-4 rounded-xl mt-2' : ''}`}>
-        <div className="flex-1 min-w-0">
-          <Link href={`/post/${displayPost.slug}`} className="block">
-            <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-2 group-hover/card:text-gray-700 leading-tight transition-colors">
-              {displayPost.title}
-            </h2>
-            <div className="text-gray-600 line-clamp-2 mb-4 text-sm md:text-base leading-relaxed">
-              {displayPost.content_html ? displayPost.content_html.replace(/<[^>]+>/g, ' ').substring(0, 200) + '...' : 'Read more...'}
-            </div>
+        <div className="flex items-center gap-1.5 text-xs text-neutral-400 mb-3 font-medium tracking-wide">
+          <Repeat className="w-3.5 h-3.5" />
+          <Link href={`/u/${initialPost.author?.username}`} className="hover:text-neutral-600 transition-colors">
+            {initialPost.author?.username} reposted
           </Link>
-          
-          <div className="flex items-center justify-between mt-4">
-            <div className="flex items-center space-x-4">
-              {displayPost.tags && displayPost.tags.length > 0 && (
-                <div className="flex space-x-2">
-                  <span className="bg-gray-100 text-gray-600 text-xs px-2.5 py-1 rounded-full whitespace-nowrap group-hover/card:bg-gray-200 transition-colors">
-                    {displayPost.tags[0]}
-                  </span>
-                </div>
-              )}
-            </div>
-            
-            <div className="flex items-center space-x-4 text-gray-400">
-               <button onClick={handleLike} className="flex items-center space-x-1.5 transition-colors hover:text-red-500">
-                  <svg className={`w-5 h-5 ${liked ? 'fill-red-500 text-red-500' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                  </svg>
-                  <span className="text-sm font-medium">{likesCount}</span>
-               </button>
-               <button onClick={handleBookmark} className="flex items-center space-x-1.5 transition-colors hover:text-gray-900">
-                  <svg className={`w-5 h-5 ${bookmarked ? 'fill-gray-900 text-gray-900' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-                  </svg>
-                  <span className="text-sm font-medium">{bookmarksCount}</span>
-               </button>
-               <button onClick={async (e) => {
-                 e.preventDefault();
-                 e.stopPropagation();
-                 if (!isAuthenticated) return alert('Please login first');
-                 try {
-                   const api = require('../services/api').default;
-                   const res = await api.post(`/posts/${displayPost._id}/repost`, {});
-                   if (res.data.data?.action === 'unreposted') {
-                     setSharesCount(prev => Math.max(0, prev - 1));
-                     setReposted(false);
-                     if (amIAuthorOfRepost) {
-                       setDeleted(true); // Hide the card immediately if unreposting from own feed
-                     }
-                   } else {
-                     setSharesCount(prev => prev + 1);
-                     setReposted(true);
-                   }
-                 } catch (err) {
-                   alert(err.response?.data?.message || 'Error reposting');
-                 }
-               }} className={`flex items-center space-x-1.5 transition-colors ${reposted ? 'text-green-600' : 'hover:text-green-600'}`}>
-                  <svg className={`w-5 h-5 ${reposted ? 'fill-green-600 text-green-600' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-                  </svg>
-                  <span className="text-sm font-medium">{sharesCount}</span>
-               </button>
-            </div>
+        </div>
+      )}
+
+      <div className={isSensitive ? 'blur-sm select-none pointer-events-none' : ''}>
+        {/* ── Author row ── */}
+        <div className="flex items-center gap-2 mb-3">
+          <Link href={`/u/${displayPost.author?.username}`} className="w-8 h-8 rounded-full overflow-hidden bg-neutral-200 flex-shrink-0 ring-1 ring-neutral-100 hover:opacity-80 transition-opacity">
+            {displayPost.author?.avatar ? (
+              <img src={displayPost.author.avatar} alt="" className="w-full h-full object-cover" />
+            ) : (
+              <span className="w-full h-full flex items-center justify-center text-xs font-bold text-neutral-500">
+                {displayPost.author?.username?.charAt(0).toUpperCase()}
+              </span>
+            )}
+          </Link>
+          <div className="flex items-center gap-1.5 min-w-0">
+            <Link href={`/u/${displayPost.author?.username}`} className="text-sm font-semibold text-neutral-800 hover:text-neutral-600 cursor-pointer truncate">
+              {displayPost.author?.username}
+            </Link>
+            <span className="text-neutral-300 text-xs">·</span>
+            <span className="text-xs text-neutral-400 whitespace-nowrap">
+              {displayPost.createdAt ? formatDistanceToNow(new Date(displayPost.createdAt), { addSuffix: true }) : 'just now'}
+            </span>
           </div>
         </div>
 
-        {displayPost.cover_image && (
-          <div className="hidden sm:block w-24 h-24 md:w-40 md:h-28 rounded-lg overflow-hidden bg-gray-100 ring-1 ring-gray-100 flex-shrink-0">
-            <img src={displayPost.cover_image} alt="" className="w-full h-full object-cover transition-transform group-hover/card:scale-105" />
+        {/* ── Repost quote ── */}
+        {isRepost && initialPost.content_html && (
+          <p className="text-sm text-neutral-500 italic border-l-2 border-neutral-200 pl-3 mb-3 line-clamp-2">
+            {initialPost.content_html.replace(/<[^>]+>/g, '')}
+          </p>
+        )}
+
+        {/* ── Main content (no title, direct focus on text) ── */}
+        <Link href={`/post/${displayPost.slug}`} className="block group/link">
+          {plainText && (
+            <p className="text-sm sm:text-[15px] text-neutral-500 leading-relaxed line-clamp-3 mb-3">
+              {plainText}
+            </p>
+          )}
+        </Link>
+
+        {/* ── Media grid ── */}
+        {hasMedia && (
+          <div className="mb-4" onClick={e => e.stopPropagation()}>
+            <MediaGrid media={displayPost.media} />
           </div>
         )}
+
+        {/* ── Cover image (if no embedded media) ── */}
+        {!hasMedia && displayPost.cover_image && (
+          <Link href={`/post/${displayPost.slug}`} className="block mb-4">
+            <div className="w-full h-48 sm:h-56 rounded-xl overflow-hidden bg-neutral-100">
+              <img
+                src={displayPost.cover_image}
+                alt=""
+                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+              />
+            </div>
+          </Link>
+        )}
+
+        {/* ── Footer row ── */}
+        <div className="flex items-center justify-between">
+          {/* Tags */}
+          <div className="flex items-center gap-2 min-w-0">
+            {displayPost.tags?.slice(0, 2).map(tag => (
+              <span
+                key={tag}
+                className="text-xs font-medium text-neutral-500 bg-neutral-100 hover:bg-neutral-200 px-2.5 py-1 rounded-full cursor-pointer transition-colors truncate"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center gap-1 text-neutral-400">
+            {/* Like */}
+            <button
+              onClick={handleLike}
+              className={`flex items-center gap-1 px-2 py-1.5 rounded-full text-xs font-medium transition-all hover:bg-red-50 hover:text-red-500 ${liked ? 'text-red-500' : ''}`}
+            >
+              <Heart className={`w-4 h-4 ${liked ? 'fill-red-500 stroke-red-500' : ''}`} strokeWidth={1.8} />
+              {likesCount > 0 && <span>{likesCount}</span>}
+            </button>
+
+            {/* Comment */}
+            <Link
+              href={`/post/${displayPost.slug}#comments`}
+              onClick={e => e.stopPropagation()}
+              className="flex items-center gap-1 px-2 py-1.5 rounded-full text-xs font-medium transition-all hover:bg-neutral-100 hover:text-neutral-700"
+            >
+              <MessageCircle className="w-4 h-4" strokeWidth={1.8} />
+            </Link>
+
+            {/* Bookmark */}
+            <button
+              onClick={handleBookmark}
+              className={`flex items-center gap-1 px-2 py-1.5 rounded-full text-xs font-medium transition-all hover:bg-neutral-100 hover:text-neutral-800 ${bookmarked ? 'text-neutral-900' : ''}`}
+            >
+              <Bookmark className={`w-4 h-4 ${bookmarked ? 'fill-neutral-900 stroke-neutral-900' : ''}`} strokeWidth={1.8} />
+              {bookmarksCount > 0 && <span>{bookmarksCount}</span>}
+            </button>
+
+            {/* Repost */}
+            <div className="relative" onClick={e => e.stopPropagation()}>
+              <button
+                onClick={e => { e.preventDefault(); e.stopPropagation(); setShowRepostMenu(!showRepostMenu); }}
+                className={`flex items-center gap-1 px-2 py-1.5 rounded-full text-xs font-medium transition-all hover:bg-green-50 hover:text-green-600 ${reposted ? 'text-green-600' : ''}`}
+              >
+                <Repeat className="w-4 h-4" strokeWidth={1.8} />
+                {sharesCount > 0 && <span>{sharesCount}</span>}
+              </button>
+
+              {showRepostMenu && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={e => { e.preventDefault(); e.stopPropagation(); setShowRepostMenu(false); }} />
+                  <div className="absolute bottom-full right-0 mb-2 w-44 bg-white rounded-xl shadow-lg border border-neutral-100 py-1 z-50 overflow-hidden">
+                    <button
+                      onClick={e => { e.preventDefault(); e.stopPropagation(); setShowRepostMenu(false); handleRepost(e); }}
+                      className="w-full px-4 py-2.5 text-left flex items-center gap-3 hover:bg-neutral-50 text-sm text-neutral-700 transition-colors"
+                    >
+                      {reposted ? <Check className="w-4 h-4 text-green-600" /> : <Repeat className="w-4 h-4" />}
+                      <span className={reposted ? 'text-green-600 font-semibold' : 'font-medium'}>{reposted ? 'Unrepost' : 'Repost'}</span>
+                    </button>
+                    <button
+                      onClick={e => { e.preventDefault(); e.stopPropagation(); setShowRepostMenu(false); alert('Coming soon!'); }}
+                      className="w-full px-4 py-2.5 text-left flex items-center gap-3 hover:bg-neutral-50 text-sm text-neutral-700 transition-colors"
+                    >
+                      <Quote className="w-4 h-4" />
+                      <span className="font-medium">Quote</span>
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
+    </article>
   );
 }
