@@ -84,6 +84,19 @@ class UserService {
     
     return userRepository.update(user_id, updateData);
   }
+  async getFollowSuggestions(userId, limit = 5) {
+    const Follow = require('../models/Follow');
+    const User = require('../models/User');
+    
+    // Get IDs of users already following
+    const following = await Follow.find({ follower_id: userId }).select('following_id');
+    const followingIds = following.map(f => f.following_id);
+    followingIds.push(userId); // Don't suggest self
+
+    return User.find({ _id: { $nin: followingIds } })
+      .select('username avatar bio')
+      .limit(limit);
+  }
 }
 
 module.exports = new UserService();

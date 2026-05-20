@@ -11,6 +11,7 @@ const notificationRoutes = require('./notification.routes');
 const moderationRoutes = require('./moderation.routes');
 const adminRoutes = require('./admin.routes');
 const reportRoutes = require('./report.routes');
+const messageRoutes = require('./message.routes');
 
 router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
@@ -22,5 +23,6 @@ router.use('/notifications', notificationRoutes);
 router.use('/moderation', moderationRoutes);
 router.use('/admin', adminRoutes);
 router.use('/reports', reportRoutes);
+router.use('/messages', messageRoutes);
 
 module.exports = router;

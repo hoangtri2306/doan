@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { getPosts } from '../services/post.service';
 import PostCard from '../components/PostCard';
 import Link from 'next/link';
-import { PenLine } from 'lucide-react';
+import { PenLine, Lock } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 
 function SkeletonCard() {
@@ -30,6 +30,7 @@ function SkeletonCard() {
 export default function Home() {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isLimited, setIsLimited] = useState(false);
   const [selectedTags, setSelectedTags] = useState([]);
   const { isAuthenticated } = useAuth();
 
@@ -37,8 +38,9 @@ export default function Home() {
     const fetchPosts = async () => {
       setLoading(true);
       try {
-        const { data } = await getPosts(0, 20, selectedTags);
-        setPosts(data || []);
+        const res = await getPosts(0, 20, selectedTags);
+        setPosts(res.data || []);
+        setIsLimited(res.meta?.isLimited || false);
       } catch (error) {
         console.error('Failed to load posts', error);
       } finally {
@@ -46,7 +48,7 @@ export default function Home() {
       }
     };
     fetchPosts();
-  }, [selectedTags]);
+  }, [selectedTags, isAuthenticated]);
 
   const toggleTag = (tag) => {
     setSelectedTags(prev => 
@@ -97,10 +99,43 @@ export default function Home() {
                 )}
               </div>
             ) : (
-              <div>
-                {posts.map(post => (
-                  <PostCard key={post._id} post={post} />
-                ))}
+              <div className="relative">
+                <div className="space-y-0">
+                  {posts.map(post => (
+                    <PostCard key={post._id} post={post} />
+                  ))}
+                </div>
+
+                {/* Substack-style Guest Limit Overlay */}
+                {!isAuthenticated && isLimited && (
+                  <div className="relative mt-10">
+                    <div className="absolute inset-x-0 bottom-0 h-64 bg-gradient-to-t from-[#fafafa] via-[#fafafa]/95 to-transparent z-10" />
+                    <div className="relative z-20 py-20 px-6 text-center glass rounded-3xl max-w-lg mx-auto shadow-2xl border border-white">
+                      <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
+                        <Lock className="w-8 h-8 text-blue-500" />
+                      </div>
+                      <h3 className="text-3xl font-black text-gray-900 mb-3 tracking-tight">Unlock the full experience</h3>
+                      <p className="text-gray-500 mb-8 leading-relaxed text-lg">
+                        Join our community of readers to access all stories, follow your favorite writers, and never miss an update.
+                      </p>
+                      <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                        <Link 
+                          href="/register"
+                          className="btn-premium btn-primary px-8 py-3.5 rounded-full text-sm font-bold shadow-blue-500/20 shadow-lg hover:shadow-blue-500/40"
+                        >
+                          Sign up for free
+                        </Link>
+                        <Link 
+                          href="/login"
+                          className="btn-premium btn-secondary px-8 py-3.5 rounded-full text-sm font-bold"
+                        >
+                          Sign in
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
               </div>
             )}
           </main>

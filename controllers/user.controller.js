@@ -1,4 +1,5 @@
 const userService = require('../services/user.service');
+const followService = require('../services/follow.service');
 
 class UserController {
   async register(req, res, next) {
@@ -136,7 +137,19 @@ class UserController {
       }
 
       const postService = require('../services/post.service');
-      const posts = await postService.getPostsByUser(user._id, req.user?.id);
+      const isAuthenticated = !!req.user;
+      let isLimited = false;
+      let finalPosts = await postService.getPostsByUser(user._id, req.user?.id);
+
+      if (!isAuthenticated && finalPosts.length > 3) {
+        finalPosts = finalPosts.slice(0, 3);
+        isLimited = true;
+      }
+
+      const [followStats, isFollowing] = await Promise.all([
+        followService.getFollowStats(user._id),
+        followService.isFollowing(req.user?.id, user._id)
+      ]);
 
       res.status(200).json({
         success: true,
@@ -146,9 +159,13 @@ class UserController {
             username: user.username,
             avatar: user.avatar,
             bio: user.bio,
-            createdAt: user.createdAt
+            createdAt: user.createdAt,
+            followersCount: followStats.followersCount,
+            followingCount: followStats.followingCount,
+            isFollowing: isFollowing
           },
-          posts: posts
+          posts: finalPosts,
+          meta: { isLimited }
         }
       });
     } catch (error) {

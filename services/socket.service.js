@@ -35,5 +35,11 @@ module.exports = {
     if (io) {
       io.to(receiverId.toString()).emit('new_notification', notificationData);
     }
+  },
+
+  sendToUser: (userId, event, data) => {
+    if (io) {
+      io.to(userId.toString()).emit(event, data);
+    }
   }
 };

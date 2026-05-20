@@ -27,6 +27,28 @@ class FollowService {
       return { success: true, action: 'followed', follow };
     }
   }
+
+  async getFollowers(userId) {
+    return followRepository.getFollowers(userId);
+  }
+
+  async getFollowing(userId) {
+    return followRepository.getFollowing(userId);
+  }
+
+  async getFollowStats(userId) {
+    const [followersCount, followingCount] = await Promise.all([
+      followRepository.getFollowersCount(userId),
+      followRepository.getFollowingCount(userId)
+    ]);
+    return { followersCount, followingCount };
+  }
+
+  async isFollowing(followerId, followingId) {
+    if (!followerId) return false;
+    const follow = await followRepository.findFollow(followerId, followingId);
+    return !!follow;
+  }
 }
 
 module.exports = new FollowService();

@@ -4,12 +4,15 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { toggleInteraction, bookmarkPost, unbookmarkPost } from '../services/interaction.service';
 import { useAuth } from '../hooks/useAuth';
+import { useRouter } from 'next/navigation';
+import { toast } from 'react-hot-toast';
 import { AlertTriangle, Repeat, Quote, Check, Heart, Bookmark, MessageCircle } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import MediaGrid from './MediaGrid';
 
 export default function PostCard({ post: initialPost }) {
   const { isAuthenticated, user } = useAuth();
+  const router = useRouter();
   const [liked, setLiked] = useState(initialPost.isLiked);
   const [bookmarked, setBookmarked] = useState(initialPost.isBookmarked);
   const [likesCount, setLikesCount] = useState(initialPost.likesCount || 0);
@@ -30,7 +33,11 @@ export default function PostCard({ post: initialPost }) {
 
   const handleLike = async (e) => {
     e.preventDefault(); e.stopPropagation();
-    if (!isAuthenticated) return alert('Please login first');
+    if (!isAuthenticated) {
+      toast.error("Please login to like stories");
+      router.push('/login');
+      return;
+    }
     try {
       const newStatus = !liked;
       setLiked(newStatus);
@@ -41,7 +48,11 @@ export default function PostCard({ post: initialPost }) {
 
   const handleBookmark = async (e) => {
     e.preventDefault(); e.stopPropagation();
-    if (!isAuthenticated) return alert('Please login first');
+    if (!isAuthenticated) {
+      toast.error("Please login to bookmark stories");
+      router.push('/login');
+      return;
+    }
     try {
       const newStatus = !bookmarked;
       setBookmarked(newStatus);
@@ -53,7 +64,11 @@ export default function PostCard({ post: initialPost }) {
 
   const handleRepost = async (e) => {
     e.preventDefault(); e.stopPropagation();
-    if (!isAuthenticated) return alert('Please login first');
+    if (!isAuthenticated) {
+      toast.error("Please login to repost stories");
+      router.push('/login');
+      return;
+    }
     try {
       const api = require('../services/api').default;
       const res = await api.post(`/posts/${displayPost._id}/repost`, {});
@@ -65,7 +80,7 @@ export default function PostCard({ post: initialPost }) {
         setSharesCount(prev => prev + 1);
         setReposted(true);
       }
-    } catch (err) { alert(err.response?.data?.message || 'Error reposting'); }
+    } catch (err) { toast.error(err.response?.data?.message || 'Error reposting'); }
   };
 
   const plainText = displayPost.content_html
@@ -76,13 +91,14 @@ export default function PostCard({ post: initialPost }) {
   const hasMedia = displayPost.media && displayPost.media.length > 0;
 
   return (
-    <article className="group relative py-7 border-b border-neutral-100 last:border-b-0">
+    <article className="premium-card p-6 mb-6 group relative">
       {/* Sensitive overlay */}
       {isSensitive && (
         <div
-          className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/70 backdrop-blur-sm cursor-pointer rounded-lg"
+          className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/80 backdrop-blur-md cursor-pointer rounded-2xl"
           onClick={() => setRevealed(true)}
         >
+
           <AlertTriangle className="w-7 h-7 text-amber-400 mb-2" />
           <p className="text-sm font-semibold text-gray-700">Sensitive Content</p>
           <p className="text-xs text-gray-400 mt-0.5">Click to reveal</p>

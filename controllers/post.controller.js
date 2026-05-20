@@ -113,16 +113,37 @@ class PostController {
 
   async listPosts(req, res, next) {
     try {
-      const { skip, limit, tag } = req.query;
+      let { skip, limit, tag } = req.query;
       const query = { visibility: 'PUBLIC' };
+      
+      const isAuthenticated = !!req.user;
+      let isLimited = false;
+
+      if (!isAuthenticated) {
+        // Strict limit for guests: only 5 posts, no pagination beyond that
+        limit = 5;
+        skip = 0;
+        isLimited = true;
+      }
+
       if (tag) {
         const tagsArray = tag.split(',').filter(t => t.trim());
         if (tagsArray.length > 0) {
           query.tags = { $in: tagsArray };
         }
       }
+
       const posts = await postService.listPosts(query, Number(skip) || 0, Number(limit) || 10, req.user?.id);
-      res.status(200).json({ success: true, message: 'Posts retrieved', data: posts });
+      
+      res.status(200).json({ 
+        success: true, 
+        message: 'Posts retrieved', 
+        data: posts,
+        meta: {
+          isLimited,
+          total: isAuthenticated ? await postService.countPosts(query) : posts.length
+        }
+      });
     } catch (error) {
       next(error);
     }

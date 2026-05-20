@@ -1,5 +1,6 @@
 const postRepository = require('../repositories/post.repo');
 const interactionRepository = require('../repositories/interaction.repo');
+const Post = require('../models/Post');
 
 class PostService {
   async createPost(user_id, data) {
@@ -163,7 +164,7 @@ class PostService {
       updateData.reading_time = Math.max(1, Math.ceil(wordCount / 200));
     }
     if (data.tags) updateData.tags = data.tags;
-
+ 
     return postRepository.update(id, updateData);
   }
 
@@ -193,7 +194,6 @@ class PostService {
 
   async getBookmarkedPosts(user_id) {
     const Interaction = require('../models/Interaction');
-    const Post = require('../models/Post');
     
     const interactions = await Interaction.find({ user_id, type: 'BOOKMARK', target_model: 'Post' }).sort({ createdAt: -1 });
     const postIds = interactions.map(i => i.target_id);
@@ -217,7 +217,6 @@ class PostService {
 
     let repostedPostIds = [];
     if (current_user_id) {
-      const Post = require('../models/Post');
       const userReposts = await Post.find({ author: current_user_id, original_post: { $in: postIds } });
       repostedPostIds = userReposts.map(rp => rp.original_post.toString());
     }
@@ -232,6 +231,10 @@ class PostService {
       pObj.isReposted = repostedPostIds.includes(p._id.toString());
       return pObj;
     }));
+  }
+
+  async countPosts(query) {
+    return Post.countDocuments(query);
   }
 }
 
