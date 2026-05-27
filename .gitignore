@@ -11,3 +11,9 @@ yarn-debug.log*
 yarn-error.log*
 .idea/
 .vscode/
+
+# Local media uploads (dùng Cloudinary trên production)
+uploads/
+
+# ML model weights (quá lớn để commit lên Git)
+final_model/

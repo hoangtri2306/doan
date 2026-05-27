@@ -29,7 +29,6 @@ export default function PostCard({ post: initialPost }) {
   const [reposted, setReposted] = useState(amIAuthorOfRepost || initialPost.isReposted || false);
 
   if (deleted) return null;
-  const isSensitive = displayPost.is_sensitive && !revealed;
 
   const handleLike = async (e) => {
     e.preventDefault(); e.stopPropagation();
@@ -91,17 +90,25 @@ export default function PostCard({ post: initialPost }) {
   const hasMedia = displayPost.media && displayPost.media.length > 0;
 
   return (
-    <article className="premium-card p-6 mb-6 group relative">
-      {/* Sensitive overlay */}
-      {isSensitive && (
-        <div
-          className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/80 backdrop-blur-md cursor-pointer rounded-2xl"
-          onClick={() => setRevealed(true)}
-        >
-
-          <AlertTriangle className="w-7 h-7 text-amber-400 mb-2" />
-          <p className="text-sm font-semibold text-gray-700">Sensitive Content</p>
-          <p className="text-xs text-gray-400 mt-0.5">Click to reveal</p>
+    <article className="premium-card p-6 mb-6 group relative overflow-hidden">
+      {/* Sensitive content overlay */}
+      {displayPost.is_sensitive && !revealed && (
+        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/70 backdrop-blur-md rounded-2xl p-6 text-center border border-amber-100">
+          <AlertTriangle className="w-9 h-9 text-amber-500 mb-2 animate-pulse" />
+          <h4 className="text-sm font-bold text-neutral-900 mb-1">Nội dung nhạy cảm</h4>
+          <p className="text-xs text-neutral-500 max-w-xs mb-4">
+            Bài viết này chứa nội dung nhạy cảm được đánh dấu bởi quản trị viên.
+          </p>
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setRevealed(true);
+            }}
+            className="px-5 py-2 bg-neutral-900 hover:bg-neutral-800 text-white rounded-full text-xs font-bold transition-all shadow-sm active:scale-95"
+          >
+            Hiển thị nội dung
+          </button>
         </div>
       )}
 
@@ -115,7 +122,7 @@ export default function PostCard({ post: initialPost }) {
         </div>
       )}
 
-      <div className={isSensitive ? 'blur-sm select-none pointer-events-none' : ''}>
+      <div>
         {/* ── Author row ── */}
         <div className="flex items-center gap-2 mb-3">
           <Link href={`/u/${displayPost.author?.username}`} className="w-8 h-8 rounded-full overflow-hidden bg-neutral-200 flex-shrink-0 ring-1 ring-neutral-100 hover:opacity-80 transition-opacity">

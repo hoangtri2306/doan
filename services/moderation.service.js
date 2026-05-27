@@ -59,6 +59,28 @@ class ModerationService {
 
     return moderationRepository.updateQueueItem(queueId, { status: 'REVIEWED' });
   }
+  async warn(queueId) {
+    const item = await moderationRepository.findQueueItemById(queueId);
+    if (!item) throw new Error('Queue item not found');
+
+    if (item.target_model === 'Comment') {
+      const Comment = require('../models/Comment');
+      // Comment: đánh dấu nhạy cảm, vẫn hiện nhưng bị blur
+      await Comment.findByIdAndUpdate(item.target_id, {
+        is_sensitive: true,
+        is_hidden: false   // không ẩn hoàn toàn
+      });
+    } else if (item.target_model === 'Post') {
+      const Post = require('../models/Post');
+      // Post: đánh dấu nhạy cảm, vẫn PUBLIC nhưng có overlay cảnh báo
+      await Post.findByIdAndUpdate(item.target_id, {
+        is_sensitive: true,
+        visibility: 'PUBLIC'
+      });
+    }
+
+    return moderationRepository.updateQueueItem(queueId, { status: 'REVIEWED' });
+  }
 }
 
 module.exports = new ModerationService();

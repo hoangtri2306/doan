@@ -40,6 +40,11 @@ export const unmarkSensitive = async (id) => {
   return data;
 };
 
+export const deletePostByAdmin = async (id) => {
+  const { data } = await api.delete(`/admin/posts/${id}`);
+  return data;
+};
+
 export const getReports = async () => {
   const { data } = await api.get('/admin/reports');
   return data;

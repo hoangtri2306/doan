@@ -28,9 +28,8 @@ const postSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Indexing slug for fast lookups and ensuring uniqueness
-postSchema.index({ slug: 1 }, { unique: true });
-// Indexing tags for fast filtering
+// Index tags for fast filtering (slug unique index is defined inline above)
 postSchema.index({ tags: 1 });
 
 module.exports = mongoose.model('Post', postSchema);
+

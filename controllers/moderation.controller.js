@@ -53,6 +53,14 @@ class ModerationController {
       next(error);
     }
   }
+  async warnItem(req, res, next) {
+    try {
+      await moderationService.warn(req.params.id);
+      res.status(200).json({ success: true, message: 'Item marked as sensitive (warned)' });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 module.exports = new ModerationController();

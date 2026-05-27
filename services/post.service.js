@@ -5,15 +5,16 @@ const Post = require('../models/Post');
 class PostService {
   async createPost(user_id, data) {
     // Calculate reading time (avg 200 words per minute)
-    const text = data.content_html ? data.content_html.replace(/<[^>]+>/g, ' ') : '';
-    const wordCount = text.trim().split(/\s+/).length;
+    const bodyText = data.content_html ? data.content_html.replace(/<[^>]+>/g, ' ') : '';
+    const wordCount = bodyText.trim().split(/\s+/).length;
     const readingTime = Math.max(1, Math.ceil(wordCount / 200));
 
-    const titleForSlug = data.title || text.slice(0, 20) || 'post';
+    const titleForSlug = data.title || bodyText.slice(0, 20) || 'post';
     
-    // Analyze content with AI
+    // Analyze content with AI (gộp title + nội dung để phân tích chính xác hơn)
     const aiService = require('./ai.service');
-    const aiResult = await aiService.analyze(text);
+    const analyzeText = [data.title || '', bodyText].filter(Boolean).join(' ').trim();
+    const aiResult = await aiService.analyze(analyzeText);
     const { spam_score, toxicity_score, label } = aiResult;
     
     const postData = {
@@ -24,8 +25,9 @@ class PostService {
       content_html: data.content_html,
       tags: data.tags || [],
       reading_time: readingTime,
-      is_sensitive: toxicity_score > 0.7,
-      visibility: spam_score > 0.8 ? 'HIDDEN' : (data.visibility || 'PUBLIC')
+      is_sensitive: false,
+      // Ẩn hoàn toàn nếu AI phát hiện SPAM hoặc TOXIC — chờ admin duyệt
+      visibility: (label === 'SPAM' || label === 'TOXIC') ? 'HIDDEN' : (data.visibility || 'PUBLIC')
     };
 
     const newPost = await postRepository.create(postData);
@@ -34,6 +36,7 @@ class PostService {
     if (label === 'SPAM' || label === 'TOXIC') {
       const moderationRepository = require('../repositories/moderation.repo');
       const userRepository = require('../repositories/user.repo');
+      const notificationService = require('./notification.service');
 
       await moderationRepository.addToQueue({
         target_id: newPost._id,
@@ -60,6 +63,27 @@ class PostService {
 
         await userRepository.update(user_id, { spamCount, toxicCount, violationScore, status });
       }
+
+      // Gửi thông báo hệ thống cho user
+      // Tạo preview nội dung để user nhớ lại họ đã viết gì
+      const contentPreview = [
+        data.title && data.title !== 'No Title' ? data.title : '',
+        bodyText.slice(0, 200)
+      ].filter(Boolean).join('\n').trim();
+
+      await notificationService.sendSystemNotification({
+        recipient: user_id,
+        type: 'AI_MODERATION',
+        entity_id: newPost._id,
+        entity_model: 'Post',
+        metadata: {
+          ai_label: label,
+          target_model: 'Post',
+          spam_score,
+          toxicity_score,
+          content_preview: contentPreview.slice(0, 300)  // nội dung gốc user viết
+        }
+      });
     }
 
     return newPost;

@@ -13,6 +13,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
 import MediaGrid from '../../../components/MediaGrid';
+import { AlertTriangle } from 'lucide-react';
 
 export default function PostDetail() {
   const params = useParams();
@@ -21,6 +22,7 @@ export default function PostDetail() {
   const [post, setPost] = useState(null);
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [revealed, setRevealed] = useState(false);
 
   const fetchPostAndComments = async () => {
     try {
@@ -121,15 +123,34 @@ export default function PostDetail() {
         </div>
       </div>
 
-      <div 
-        className="prose prose-lg max-w-none text-gray-800 font-serif leading-relaxed mb-6"
-        dangerouslySetInnerHTML={{ __html: post.content_html }}
-      />
-
-      {post.media && post.media.length > 0 && (
-        <div className="mb-8">
-          <MediaGrid media={post.media} />
+      {post.is_sensitive && !revealed ? (
+        <div className="my-8 p-8 border border-amber-200 bg-amber-50/30 rounded-2xl text-center relative overflow-hidden backdrop-blur-sm">
+          <div className="absolute inset-0 bg-white/40 backdrop-blur-sm -z-10" />
+          <AlertTriangle className="w-10 h-10 text-amber-500 mx-auto mb-3 animate-pulse" />
+          <h3 className="text-lg font-bold text-neutral-900 mb-1">Nội dung nhạy cảm</h3>
+          <p className="text-sm text-neutral-500 max-w-md mx-auto mb-4">
+            Bài viết này chứa nội dung nhạy cảm được đánh dấu bởi quản trị viên. Bạn vẫn muốn xem?
+          </p>
+          <button
+            onClick={() => setRevealed(true)}
+            className="px-6 py-2 bg-neutral-900 hover:bg-neutral-800 text-white rounded-full text-sm font-bold transition-all shadow-sm active:scale-95"
+          >
+            Hiển thị nội dung
+          </button>
         </div>
+      ) : (
+        <>
+          <div 
+            className="prose prose-lg max-w-none text-gray-800 font-serif leading-relaxed mb-6"
+            dangerouslySetInnerHTML={{ __html: post.content_html }}
+          />
+
+          {post.media && post.media.length > 0 && (
+            <div className="mb-8">
+              <MediaGrid media={post.media} />
+            </div>
+          )}
+        </>
       )}
 
       <InteractionBar 

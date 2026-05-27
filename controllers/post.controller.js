@@ -99,6 +99,21 @@ class PostController {
     }
   }
 
+  // Lấy nội dung bài viết kể cả khi bị ẩn — chỉ dùng trong trường hợp kháng cáo
+  async getPostContent(req, res, next) {
+    try {
+      const Post = require('../models/Post');
+      const post = await Post.findById(req.params.id)
+        .select('title content_html visibility author label');
+      if (!post) {
+        return res.status(404).json({ success: false, message: 'Post not found', data: null });
+      }
+      res.status(200).json({ success: true, data: post });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async getPostBySlug(req, res, next) {
     try {
       const post = await postService.getPostBySlug(req.params.slug, req.user?.id);

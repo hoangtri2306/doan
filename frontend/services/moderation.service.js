@@ -14,3 +14,8 @@ export const hideModerationItem = async (id) => {
   const { data } = await api.put(`/moderation/hide/${id}`);
   return data;
 };
+
+export const warnModerationItem = async (id) => {
+  const { data } = await api.put(`/moderation/warn/${id}`);
+  return data;
+};

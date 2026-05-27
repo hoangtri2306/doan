@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { getAllPosts, hidePost, unhidePost, markSensitive, unmarkSensitive } from '../../../services/admin.service';
+import { getAllPosts, hidePost, unhidePost, markSensitive, unmarkSensitive, deletePostByAdmin } from '../../../services/admin.service';
 import Link from 'next/link';
 
 const VISIBILITY_STYLE = {
@@ -82,6 +82,20 @@ export default function AdminPostsPage() {
     }
   };
 
+  const handleDeletePost = async (id) => {
+    if (!confirm('Bạn có chắc chắn muốn xóa vĩnh viễn bài viết này không?')) return;
+    setActionLoading(id);
+    try {
+      await deletePostByAdmin(id);
+      showToast('Xóa bài viết thành công');
+      fetchPosts();
+    } catch {
+      showToast('Xóa bài viết thất bại', 'error');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   const getPlainText = (html) => html?.replace(/<[^>]+>/g, '').slice(0, 80) || 'No content';
 
   const filtered = posts.filter(p => {
@@ -136,7 +150,7 @@ export default function AdminPostsPage() {
                     <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-500 text-[10px] font-bold uppercase tracking-tight">Sensitive</span>
                   )}
                 </div>
-                <div className="col-span-1 flex justify-end gap-1.5">
+                 <div className="col-span-1 flex justify-end gap-1.5">
                    <button onClick={() => handleToggleSensitive(post._id, post.is_sensitive)} disabled={actionLoading === post._id} title={post.is_sensitive ? "Remove Sensitive Mark" : "Mark as Sensitive"} className={`p-1.5 rounded-lg transition-colors ${post.is_sensitive ? 'text-amber-500 hover:bg-amber-500/10' : 'text-slate-500 hover:bg-slate-500/10'}`}>
                       <svg className="w-4 h-4" fill={post.is_sensitive ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 17c-.77 1.333.192 3 1.732 3z" /></svg>
                    </button>
@@ -150,6 +164,9 @@ export default function AdminPostsPage() {
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                      </button>
                    )}
+                   <button onClick={() => handleDeletePost(post._id)} disabled={actionLoading === post._id} title="Delete Post" className="p-1.5 rounded-lg hover:bg-red-500/10 text-slate-500 hover:text-red-400 transition-colors">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                   </button>
                 </div>
               </div>
             );

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useAuth } from '../hooks/useAuth';
-import { User, LogOut, PenSquare, Mail } from 'lucide-react';
+import { User, LogOut, PenSquare, Mail, ShieldAlert } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { getUnreadCount } from '../services/message.service';
 import { io } from 'socket.io-client';
@@ -71,6 +71,10 @@ export default function Navbar() {
                       {unreadMessages > 9 ? '9+' : unreadMessages}
                     </span>
                   )}
+                </Link>
+                {/* Link kháng cáo */}
+                <Link href="/appeals" title="Kháng cáo của tôi" className="text-gray-400 hover:text-orange-500 transition-colors p-1">
+                  <ShieldAlert className="w-5 h-5" />
                 </Link>
                 <Link href="/profile" className="text-gray-500 hover:text-gray-900 focus:outline-none flex items-center">
                   {user?.avatar || user?.avatar_url ? (

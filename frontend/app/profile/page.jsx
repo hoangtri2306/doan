@@ -53,7 +53,28 @@ export default function Profile() {
         </div>
         <div className="text-center md:text-left flex-1 min-w-0">
           <h1 className="text-3xl font-bold text-gray-900 mb-1">{user?.username || 'User'}</h1>
-          <p className="text-gray-500 mb-4">{user?.email}</p>
+          <p className="text-gray-500 mb-3">{user?.email}</p>
+          
+          {/* Trạng thái tài khoản & Điểm vi phạm */}
+          <div className="flex flex-wrap gap-2.5 justify-center md:justify-start items-center mb-4">
+            <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold border ${
+              user?.status === 'ACTIVE'
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-200/60'
+                : user?.status === 'WARNING'
+                ? 'bg-amber-50 text-amber-700 border-amber-200/60 animate-pulse'
+                : 'bg-rose-50 text-rose-700 border-rose-200/60'
+            }`}>
+              Trạng thái: {user?.status === 'ACTIVE' ? 'Hoạt động' : user?.status === 'WARNING' ? 'Cảnh cáo' : user?.status}
+            </span>
+            <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold border ${
+              (user?.violationScore || 0) > 0
+                ? 'bg-rose-50 text-rose-600 border-rose-100'
+                : 'bg-slate-50 text-slate-600 border-slate-200/80'
+            }`}>
+              Điểm vi phạm: <strong className="font-extrabold">{user?.violationScore || 0}/10</strong>
+            </span>
+          </div>
+
           <p className="text-gray-700 italic max-w-lg mx-auto md:mx-0 leading-relaxed">
             {user?.bio || 'No bio provided yet.'}
           </p>

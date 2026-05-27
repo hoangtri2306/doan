@@ -193,6 +193,19 @@ class AdminController {
       next(error);
     }
   }
+
+  async deletePost(req, res, next) {
+    try {
+      const Post = require('../models/Post');
+      const post = await Post.findByIdAndDelete(req.params.id);
+      if (!post) {
+        return res.status(404).json({ success: false, message: 'Post not found' });
+      }
+      res.status(200).json({ success: true, message: 'Post deleted successfully' });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 module.exports = new AdminController();

@@ -1,86 +1,130 @@
-# Modern Blogging Platform (MERN Stack)
+# Blog Platform với AI Content Moderation
 
-A professional, feature-rich blogging platform built with the MERN stack, featuring advanced moderation, social interactions, and a clean administrative dashboard.
+Nền tảng blog MERN Stack tích hợp AI (XLM-Roberta) để kiểm duyệt nội dung tự động.
 
-## 🚀 Key Features
+## Kiến trúc hệ thống
 
-### For Users
-*   **Authentication**: Secure registration and login using JWT (Access & Refresh Tokens).
-*   **Rich Content**: Create and edit posts with a clean UI.
-*   **Smart Analytics**: Automatic calculation of "Reading Time" for every post.
-*   **SEO Friendly**: Auto-generated unique slugs for clean and readable URLs.
-*   **Social Engagement**: 
-    *   Optimistic Liking and Bookmarking system.
-    *   User Follow/Unfollow mechanism.
-*   **Nested Comments**: Threaded conversation support with keyword-based content filtering.
-*   **Notifications**: Real-time notifications for likes, follows, and comments.
-
-### For Administrators
-*   **User Management**: Ban/Mute users, change roles (Admin/Mod/User).
-*   **Content Moderation**: Review reported posts/comments, hide infringing content.
-*   **Violation Tracking**: Automated tracking of user violation scores based on filtered content.
-
-## 🛠 Technology Stack
-
-*   **Frontend**: Next.js (React), CSS3 (Modern Glassmorphism Design).
-*   **Backend**: Node.js, Express.js.
-*   **Database**: MongoDB (Mongoose ODM).
-*   **Security**: Bcrypt for password hashing, JWT for stateless authentication.
-*   **Logging**: Morgan for HTTP request logging.
-
-## 📦 Installation & Setup
-
-### 1. Clone the repository
-```bash
-git clone <your-repository-url>
-cd doan
+```
+┌─────────────────────────────────────────────────────────┐
+│                    BLOG PLATFORM                        │
+│                                                         │
+│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐ │
+│  │  Next.js    │    │  Node.js    │    │   Python    │ │
+│  │  Frontend   │◄──►│  Backend    │◄──►│ AI Service  │ │
+│  │ :3000       │    │ Express :5000│   │ FastAPI :8000│ │
+│  └─────────────┘    └─────────────┘    └─────────────┘ │
+│                           │                    │        │
+│                    ┌──────▼──────┐    ┌────────▼──────┐ │
+│                    │  MongoDB    │    │ XLM-Roberta   │ │
+│                    │  Atlas      │    │ final_model/  │ │
+│                    └─────────────┘    └───────────────┘ │
+└─────────────────────────────────────────────────────────┘
 ```
 
-### 2. Backend Setup
-```bash
-# Install dependencies
-npm install
+## Khởi động hệ thống
 
-# Create .env file and add your credentials
-# PORT=5000
-# MONGODB_URI=your_mongodb_atlas_uri
-# ACCESS_TOKEN_SECRET=your_secret
-# REFRESH_TOKEN_SECRET=your_secret
-# CLIENT_URL=http://localhost:3000
+### Cách 1: Dùng script tự động (Khuyên dùng)
+```powershell
+.\start_all.ps1
+```
 
-# Run in development mode
+### Cách 2: Chạy từng service thủ công
+
+**Terminal 1 - Python AI Service:**
+```powershell
+cd f:\doan
+python ai_service\main.py
+```
+
+**Terminal 2 - Node.js Backend:**
+```powershell
+cd f:\doan
 npm run dev
 ```
 
-### 3. Frontend Setup
-```bash
-cd frontend
-
-# Install dependencies
-npm install
-
-# Run the development server
+**Terminal 3 - Next.js Frontend:**
+```powershell
+cd f:\doan\frontend
 npm run dev
 ```
 
-## 📂 Project Structure
+## URLs
 
-```text
-├── controllers/      # Request handlers
-├── services/         # Core business logic
-├── repositories/     # Data access layer (Mongoose abstractions)
-├── models/           # Database schemas
-├── routes/           # API route definitions
-├── middlewares/      # Auth & Error handling
-└── frontend/         # Next.js client application
+| Service | URL | Mô tả |
+|---------|-----|-------|
+| Frontend | http://localhost:3000 | Giao diện người dùng |
+| Backend API | http://localhost:5000/api | REST API |
+| AI Service | http://localhost:8000 | Python FastAPI |
+| AI Health | http://localhost:8000/health | Kiểm tra trạng thái |
+| AI Docs | http://localhost:8000/docs | Swagger UI |
+
+## AI Model
+
+- **Model:** XLM-Roberta (`xlm-roberta-base` fine-tuned)
+- **Task:** Multi-label content classification
+- **Labels:**
+  - `LABEL_0` → **TOXIC** (nội dung thù hận, xúc phạm)
+  - `LABEL_1` → **SPAM** (quảng cáo rác, spam)
+- **Thresholds:** 0.5 cho cả SPAM và TOXIC
+- **Model size:** ~1.1GB (`.safetensors`)
+
+## Luồng kiểm duyệt AI
+
+```
+User tạo Post/Comment
+        │
+        ▼
+Node.js Backend nhận nội dung
+        │
+        ▼
+Gọi Python AI Service (/analyze)
+        │
+        ▼
+XLM-Roberta phân tích văn bản
+        │
+     ┌──┴──┐
+     │     │
+   SPAM  TOXIC   NORMAL
+     │     │       │
+  Hidden  is_sensitive  Public
+  + Queue  + Queue
+     │
+     ▼
+Admin Moderation Dashboard
 ```
 
-## 🛡 Security & Best Practices
+## Cấu trúc thư mục
 
-*   **Layered Architecture**: Separation of concerns using Controller-Service-Repository pattern.
-*   **Secure Auth**: HttpOnly Cookies for Refresh Tokens to prevent XSS attacks.
-*   **Clean Code**: Adherence to SOLID principles and modular design.
-*   **Error Handling**: Centralized global error handling middleware.
+```
+f:\doan\
+├── ai_service/          # Python FastAPI microservice
+│   └── main.py          # Service chính
+├── final_model/         # Model đã train
+│   ├── model.safetensors
+│   ├── tokenizer.json
+│   ├── config.json
+│   └── tokenizer_config.json
+├── controllers/         # Express controllers
+├── services/
+│   ├── ai.service.js    # Gọi Python microservice
+│   └── ...
+├── frontend/            # Next.js app
+├── start_all.ps1        # Script khởi động
+└── .env                 # Biến môi trường
+```
 
----
-Developed as a Graduation Project (Đồ án).
+## Environment Variables
+
+```env
+# Backend
+PORT=5000
+MONGO_URI=...
+JWT_ACCESS_SECRET=...
+JWT_REFRESH_SECRET=...
+JWT_ACCESS_EXPIRE=15m
+JWT_REFRESH_EXPIRE=7d
+
+# AI Service
+AI_SERVICE_URL=http://localhost:8000
+AI_TIMEOUT_MS=10000
+```

@@ -9,5 +9,6 @@ router.post('/log', authenticate, authorize(['MODERATOR', 'ADMIN']), moderationC
 router.get('/queue', authenticate, authorize(['MODERATOR', 'ADMIN']), moderationController.getQueue);
 router.put('/approve/:id', authenticate, authorize(['MODERATOR', 'ADMIN']), moderationController.approveItem);
 router.put('/hide/:id', authenticate, authorize(['MODERATOR', 'ADMIN']), moderationController.hideItem);
+router.put('/warn/:id', authenticate, authorize(['MODERATOR', 'ADMIN']), moderationController.warnItem);
 
 module.exports = router;

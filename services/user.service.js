@@ -23,6 +23,10 @@ class UserService {
     const user = await userRepository.findByEmail(email);
     if (!user) throw new Error('Invalid credentials');
 
+    if (user.status === 'BANNED') {
+      throw new Error('Tài khoản của bạn đã bị khóa.');
+    }
+
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) throw new Error('Invalid credentials');
 
@@ -35,8 +39,15 @@ class UserService {
       const user = await userRepository.findById(decoded.id);
       if (!user) throw new Error('Invalid token');
 
+      if (user.status === 'BANNED') {
+        throw new Error('Tài khoản của bạn đã bị khóa.');
+      }
+
       return this._generateTokens(user);
     } catch (err) {
+      if (err.message === 'Tài khoản của bạn đã bị khóa.') {
+        throw err;
+      }
       throw new Error('Invalid or expired refresh token');
     }
   }
@@ -59,7 +70,9 @@ class UserService {
         email: user.email,
         role: user.role,
         avatar: user.avatar,
-        bio: user.bio
+        bio: user.bio,
+        violationScore: user.violationScore || 0,
+        status: user.status || 'ACTIVE'
       },
       tokens: {
         accessToken,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { login as loginService } from '../../services/auth.service';
 import { useRouter } from 'next/navigation';
@@ -12,6 +12,16 @@ export default function Login() {
   const [error, setError] = useState('');
   const { login } = useAuth();
   const router = useRouter();
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const errorMsg = params.get('error');
+      if (errorMsg) {
+        setError(errorMsg);
+      }
+    }
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

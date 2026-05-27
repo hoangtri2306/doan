@@ -11,7 +11,7 @@ class CommentService {
     const aiResult = await aiService.analyze(content);
     const { spam_score, toxicity_score, label } = aiResult;
     
-    const is_hidden = spam_score > 0.8;
+    const is_hidden = label === 'SPAM' || label === 'TOXIC'; // ẩn cả SPAM lẫn TOXIC
     
     let depth = 0;
     if (parent_id) {
@@ -100,6 +100,21 @@ class CommentService {
 
         await userRepository.update(user_id, { spamCount, toxicCount, violationScore, status });
       }
+
+      // Gửi thông báo hệ thống cho user
+      await notificationService.sendSystemNotification({
+        recipient: user_id,
+        type: 'AI_MODERATION',
+        entity_id: newComment._id,
+        entity_model: 'Comment',
+        metadata: {
+          ai_label: label,
+          target_model: 'Comment',
+          spam_score,
+          toxicity_score,
+          content_preview: content.slice(0, 300)  // nội dung bình luận gốc
+        }
+      });
     }
 
     return newComment;

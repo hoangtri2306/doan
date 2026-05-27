@@ -95,7 +95,9 @@ class UserController {
           email: updatedUser.email,
           role: updatedUser.role,
           avatar: updatedUser.avatar,
-          bio: updatedUser.bio
+          bio: updatedUser.bio,
+          violationScore: updatedUser.violationScore || 0,
+          status: updatedUser.status || 'ACTIVE'
         }
       });
     } catch (error) {
@@ -116,7 +118,9 @@ class UserController {
           email: user.email,
           role: user.role,
           avatar: user.avatar,
-          bio: user.bio
+          bio: user.bio,
+          violationScore: user.violationScore || 0,
+          status: user.status || 'ACTIVE'
         }
       });
     } catch (error) {

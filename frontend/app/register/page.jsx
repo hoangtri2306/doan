@@ -27,7 +27,7 @@ export default function Register() {
 
   return (
     <div className="max-w-md mx-auto mt-20 p-6 bg-white border border-gray-200 rounded-lg shadow-sm">
-      <h2 className="text-3xl font-serif font-bold text-center mb-8">Join MediumClone.</h2>
+      <h2 className="text-3xl font-serif font-bold text-center mb-8">Join Bloger.</h2>
       
       {error && <div className="mb-4 text-red-500 text-sm text-center">{error}</div>}
       
