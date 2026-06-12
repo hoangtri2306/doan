@@ -78,11 +78,13 @@ Blog Platform
 
 ---
 
-### 3. `kaggle_train_image_model.ipynb` — So sánh 3 model kiểm duyệt ảnh
+### 3. `kaggle_train_image_model.ipynb` — So sánh 4 model kiểm duyệt ảnh
 
-**Mục đích:** Train và so sánh 3 kiến trúc CNN/ViT để chọn model tốt nhất cho production.
+**Mục đích:** Train và so sánh 4 kiến trúc (CNN / ViT / Multimodal CLIP) để chọn model tốt nhất cho production. Bao gồm đánh giá toàn diện sau training.
 
-**3 class phân loại:**
+---
+
+#### 3.1 Phân loại 3 class
 
 | Nhãn | Mô tả |
 |------|-------|
@@ -90,36 +92,157 @@ Blog Platform
 | `NSFW` (1) | Nội dung 18+, khiêu dâm |
 | `VIOLENCE` (2) | Bạo lực, máu me |
 
-**3 model so sánh (đều dùng `timm`, `pretrained=True`):**
+---
 
-| Model | Params | Đặc điểm |
-|-------|--------|-----------|
-| `efficientnet_b0` | ~5.3M | Nhẹ, nhanh, phù hợp production |
-| `resnet50` | ~25M | Baseline kinh điển, ổn định |
-| `vit_base_patch16_224` | ~86M | Transformer-based, attention toàn cục |
+#### 3.2 Bốn model được so sánh
 
-**Dataset (~30,000 ảnh, cân bằng 10k/class):**
-- `Falconsai/nsfw_image_detection` (HuggingFace) → class SAFE + NSFW
-- `Real Life Violence Situations Dataset` (Kaggle) → class VIOLENCE
+| Model | Kiểu | Params | Đặc điểm |
+|-------|------|--------|-----------|
+| `efficientnet_b0` | CNN | ~5M | Nhẹ, nhanh, phù hợp production |
+| `resnet50` | CNN | ~25M | Baseline kinh điển, ổn định |
+| `vit_base_patch16_224` | Image Transformer | ~86M | Attention toàn cục, không cần locality |
+| `openai/clip-vit-base-patch32` | Multimodal | ~150M | Zero-shot baseline + fine-tuned |
 
-**Thêm violence dataset:** Add Data > tìm `"Real Life Violence Situations Dataset"` > Add vào notebook
+---
 
-**Cấu hình training:**
-- Optimizer: AdamW + CosineAnnealingLR
-- Batch: 64/GPU, Epochs: 10 (early stopping patience=3)
-- Data augmentation: RandomCrop, RandomHorizontalFlip, ColorJitter
+#### 3.3 Pipeline 10 bước (thứ tự cell trong notebook)
 
-**Kết quả output:**
-- `training_curves.png` — biểu đồ loss/accuracy 3 model
-- `confusion_matrices.png` — confusion matrix từng model
-- `comparison_results.json` — bảng so sánh số liệu
-- `best_image_model.zip` — model tốt nhất kèm `meta.json`
+| Bước | Cell | Nội dung |
+|------|------|---------|
+| 1 | Load Raw | Load ảnh gốc theo class, **chưa** augment, **chưa** split |
+| 2 | Quality Check | Lọc ảnh corrupt, quá nhỏ (<64px), pHash cross-class dedup |
+| 3 | Split | Stratified split 80/10/10 → **trước** khi augment (tránh data leakage) |
+| 4 | Augment | Chỉ upsample VIOLENCE trong train → cân bằng ~10k/class |
+| 5 | DataLoaders | Tính mean/std từ train set; build 6 DataLoader (train/val/test × CNN/CLIP) |
+| 6 | Zero-shot | CLIP zero-shot baseline (không cần train, dùng text prompts) |
+| 7 | LR Finder | `torch-lr-finder` tìm LR tối ưu riêng cho từng model → so sánh công bằng |
+| 8 | Train | AdamW + CosineAnnealingLR, early stop theo macro F1 |
+| 9 | So sánh cơ bản | Confusion matrix 2×2 + training curves loss/F1 |
+| 10 | Đánh giá toàn diện | ROC · PR · ECE calibration · Error analysis · Grad-CAM · ViT Attention · t-SNE · Radar chart 6D |
+| — | Kết luận | Production recommendation + lưu best model |
 
-**Yêu cầu Kaggle:**
-- Accelerator: **GPU T4 × 2** hoặc P100
-- Internet: **BẬT**
+---
 
-**Ước tính thời gian:** ~1–2h/model × 3 = **4–6 giờ tổng**
+#### 3.4 Dataset và cách chuẩn bị
+
+**Nguồn dữ liệu:**
+
+| Class | Nguồn | Số lượng gốc | Ghi chú |
+|-------|-------|-------------|---------|
+| SAFE + NSFW | HuggingFace (xem bên dưới) | ~10k/class | Tự động load |
+| VIOLENCE | `Real Life Violence Situations Dataset` (Kaggle) | ~5k | Augment lên ~10k |
+
+**Thêm Violence dataset vào Kaggle notebook:**
+> Add Data → tìm `"Real Life Violence Situations Dataset"` → Add
+
+**Load SAFE + NSFW — thứ tự thử tự động:**
+
+Code tự thử các nguồn theo thứ tự ưu tiên, dừng khi thành công:
+
+```
+[A] DarkyMan/nsfw-image-classification   ← PUBLIC, không cần token
+    Download zip 160MB → tự detect folder safe/nsfw
+
+[B] Falconsai/nsfw_image_detection        ← Cần HF_TOKEN
+    prithivMLmods/nsfw-safe-image-...     ← Cần HF_TOKEN (fallback)
+
+[C] /kaggle/input/nsfw-images/safe|nsfw  ← User thêm thủ công (fallback cuối)
+```
+
+**Thiết lập HF_TOKEN (nếu [A] fail):**
+1. Tạo tài khoản miễn phí tại [huggingface.co](https://huggingface.co)
+2. Vào **Settings → Access Tokens → New token** (Role: Read)
+3. Kaggle notebook → **Add-ons → Secrets → + New secret**
+   - Key: `HF_TOKEN`
+   - Value: token `hf_...` vừa tạo
+4. Restart kernel và chạy lại
+
+> **Lý do cần token:** HuggingFace yêu cầu đăng nhập cho dataset có nội dung người lớn theo chính sách nội dung. Dataset `DarkyMan` là ngoại lệ không cần auth.
+
+---
+
+#### 3.5 Kỹ thuật xử lý mất cân bằng (VIOLENCE ~5k vs SAFE/NSFW ~10k)
+
+Ba lớp bảo vệ đồng thời:
+
+| Lớp | Kỹ thuật | Tác dụng |
+|-----|---------|---------|
+| Data | Augment VIOLENCE train set | Tăng số lượng bằng flip/rotate/colorjitter |
+| Loss | `CrossEntropyLoss(weight=...)` | Phạt nặng hơn khi sai ở class thiểu số |
+| Metric | Early stopping theo **Macro F1** | Không ưu tiên class đa số |
+
+---
+
+#### 3.6 Metrics so sánh (7 chỉ số)
+
+| Metric | Ý nghĩa |
+|--------|--------|
+| **Accuracy** | Tỉ lệ đúng tổng thể |
+| **Macro F1** | F1 trung bình không trọng số — tiêu chí chính |
+| **VIOLENCE F1** | F1 riêng cho class khó nhất |
+| **AUC-ROC** | One-vs-Rest macro, đo khả năng phân biệt |
+| **ECE** | Expected Calibration Error — độ tin cậy của confidence |
+| **Inference (ms)** | Latency trung bình 50 lần, GPU-synchronized |
+| **Size (MB)** | Kích thước file model.pt |
+
+Kết quả được tổng hợp trong **radar chart 6 chiều** (Speed = 1/latency chuẩn hóa).
+
+---
+
+#### 3.7 Kết quả output
+
+| File | Nội dung |
+|------|---------|
+| `lr_finder.png` | LR Finder curves 4 model |
+| `size_dist.png` | Phân phối kích thước ảnh |
+| `training_curves.png` | Loss + Macro F1 theo epoch |
+| `confusion_matrices.png` | Confusion matrix 4 model (2×2 grid) |
+| `roc_curves.png` | ROC One-vs-Rest per class |
+| `pr_curves.png` | Precision-Recall per class |
+| `calibration.png` | Reliability diagram + ECE |
+| `error_high_conf.png` | Ảnh phân loại sai với confidence cao |
+| `error_uncertain.png` | Ảnh có entropy cao (model không chắc) |
+| `gradcam_*.png` | Grad-CAM — model nhìn vào vùng nào |
+| `vit_attention.png` | ViT Attention Rollout visualization |
+| `tsne.png` | t-SNE — phân bố feature space |
+| `radar_chart.png` | Radar chart so sánh 6 chiều |
+| `comparison_results.json` | Bảng số liệu đầy đủ tất cả models |
+| `production_recommendation.json` | Kết luận model nào dùng cho production và lý do |
+| `best_image_model.zip` | Best model (`model.pt` + `meta.json`) |
+
+**Nội dung `meta.json` trong zip:**
+```json
+{
+  "model_key": "efficientnet_b0",
+  "is_clip": false,
+  "class_names": ["SAFE", "NSFW", "VIOLENCE"],
+  "img_size": 224,
+  "mean": [...],
+  "std": [...],
+  "test_acc": 91.5,
+  "test_f1": 90.2,
+  "roc_auc": 0.97,
+  "ece": 0.04
+}
+```
+Đủ thông tin để tái tạo model cho inference mà không cần biết code training.
+
+---
+
+#### 3.8 Yêu cầu Kaggle
+
+| Mục | Yêu cầu |
+|-----|--------|
+| Accelerator | **GPU T4 × 2** hoặc P100 |
+| Internet | **BẬT** (Settings → Internet → On) |
+| RAM | ≥ 13GB (T4 đủ) |
+| Disk | ≥ 10GB trống |
+
+**Ước tính thời gian:** ~6–8 giờ tổng
+- Load data + quality check: ~15 phút
+- LR Finder × 4 model: ~30 phút
+- Train × 4 model (20 epoch/model): ~4–5 giờ
+- Evaluation (ROC, Grad-CAM, t-SNE...): ~1 giờ
 
 ---
 
@@ -197,7 +320,7 @@ Dùng để **so sánh** với XLM-RoBERTa trong phần thực nghiệm luận v
 4. kaggle_crawl_vnexpress.ipynb  → crawl dữ liệu báo
 5. kaggle_finetune_mt5.ipynb     → fine-tune tóm tắt + tag
 
-6. kaggle_train_image_model.ipynb → train 3 model ảnh
+6. kaggle_train_image_model.ipynb → train 4 model ảnh (EfficientNet / ResNet / ViT / CLIP)
 ```
 
 ---
