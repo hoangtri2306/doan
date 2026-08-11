@@ -11,9 +11,9 @@ import Link from 'next/link';
 
 function StatusCard({ appeal }) {
   const statusConfig = {
-    PENDING:  { icon: <Clock className="w-4 h-4" />, color: '#fbbf24', bg: 'rgba(245,158,11,0.1)', border: 'rgba(245,158,11,0.25)', label: 'Đang chờ xét' },
-    APPROVED: { icon: <CheckCircle className="w-4 h-4" />, color: '#34d399', bg: 'rgba(16,185,129,0.1)', border: 'rgba(16,185,129,0.25)', label: 'Được chấp nhận' },
-    REJECTED: { icon: <XCircle className="w-4 h-4" />, color: '#f87171', bg: 'rgba(239,68,68,0.1)', border: 'rgba(239,68,68,0.25)', label: 'Bị từ chối' },
+    PENDING:  { icon: <Clock className="w-4 h-4" />, textClass: 'text-warning', bgClass: 'bg-warning-subtle', label: 'Đang chờ xét' },
+    APPROVED: { icon: <CheckCircle className="w-4 h-4" />, textClass: 'text-success', bgClass: 'bg-success-subtle', label: 'Được chấp nhận' },
+    REJECTED: { icon: <XCircle className="w-4 h-4" />, textClass: 'text-danger', bgClass: 'bg-danger-subtle', label: 'Bị từ chối' },
   };
   const cfg = statusConfig[appeal.status] || statusConfig.PENDING;
   const isPost = appeal.target_model === 'Post';
@@ -29,16 +29,19 @@ function StatusCard({ appeal }) {
     (appeal.ai_label === 'SPAM' ? appeal.ai_spam_score : appeal.ai_toxicity_score) * 100
   );
 
+  const aiBadgeClass = appeal.ai_label === 'SPAM' ? 'bg-warning-subtle text-warning' : 'bg-danger-subtle text-danger';
+  const resultClass = appeal.status === 'APPROVED' ? 'bg-success-subtle border-success/20 text-success' : 'bg-danger-subtle border-danger/20 text-danger';
+
   return (
-    <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm">
+    <div className="card overflow-hidden">
 
       {/* Status bar */}
-      <div className="flex items-center justify-between px-5 py-3" style={{ background: cfg.bg, borderBottom: `1px solid ${cfg.border}` }}>
-        <div className="flex items-center gap-2" style={{ color: cfg.color }}>
+      <div className={`flex items-center justify-between px-5 py-3 border-b border-border-subtle ${cfg.bgClass}`}>
+        <div className={`flex items-center gap-2 ${cfg.textClass}`}>
           {cfg.icon}
-          <span className="text-sm font-bold">{cfg.label}</span>
+          <span className="text-sm font-semibold">{cfg.label}</span>
         </div>
-        <span className="text-xs text-gray-400">
+        <span className="text-xs text-text-secondary">
           {formatDistanceToNow(new Date(appeal.createdAt), { addSuffix: true, locale: vi })}
         </span>
       </div>
@@ -46,53 +49,40 @@ function StatusCard({ appeal }) {
       <div className="p-5 space-y-4">
         {/* Thông tin AI phán quyết */}
         <div className="flex items-center gap-3 flex-wrap">
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold"
-            style={{
-              background: isPost ? 'rgba(99,102,241,0.1)' : 'rgba(245,158,11,0.1)',
-              color: isPost ? '#818cf8' : '#fbbf24'
-            }}>
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-surface-hover text-text-primary">
             {isPost ? <FileText className="w-3.5 h-3.5" /> : <MessageSquare className="w-3.5 h-3.5" />}
             {isPost ? 'Bài viết' : 'Bình luận'}
           </div>
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold"
-            style={{
-              background: appeal.ai_label === 'SPAM' ? 'rgba(245,158,11,0.1)' : 'rgba(239,68,68,0.1)',
-              color: appeal.ai_label === 'SPAM' ? '#fbbf24' : '#f87171'
-            }}>
+          <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${aiBadgeClass}`}>
             <ShieldAlert className="w-3.5 h-3.5" />
             AI phát hiện: {appeal.ai_label}
           </div>
-          <span className="text-xs text-gray-400">Độ tin cậy: <strong className="text-gray-700">{aiScorePct}%</strong></span>
+          <span className="text-xs text-text-secondary">Độ tin cậy: <strong className="text-text-primary">{aiScorePct}%</strong></span>
         </div>
 
         {/* Nội dung gốc của user */}
-        <div className="rounded-xl p-4" style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}>
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
+        <div className="rounded-lg p-4 bg-bg-subtle border border-border">
+          <p className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2">
             {isPost ? '📝 Bài viết của bạn' : '💬 Bình luận của bạn'}
           </p>
-          <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+          <p className="text-sm text-text-primary whitespace-pre-wrap leading-relaxed">
             {originalContent}
           </p>
         </div>
 
         {/* Lý do kháng cáo của user */}
-        <div className="rounded-xl p-4" style={{ background: '#faf5ff', border: '1px solid #e9d5ff' }}>
-          <p className="text-xs font-bold text-violet-400 uppercase tracking-wider mb-2">🗣️ Lý do kháng cáo của bạn</p>
-          <p className="text-sm text-gray-700 italic">"{appeal.reason}"</p>
+        <div className="rounded-lg p-4 bg-bg-subtle border border-border">
+          <p className="text-xs font-semibold text-accent-text uppercase tracking-wider mb-2">🗣️ Lý do kháng cáo của bạn</p>
+          <p className="text-sm text-text-primary italic">"{appeal.reason}"</p>
         </div>
 
         {/* Kết quả (nếu đã xử lý) */}
         {appeal.status !== 'PENDING' && (
-          <div className="rounded-xl p-4"
-            style={{
-              background: appeal.status === 'APPROVED' ? 'rgba(16,185,129,0.06)' : 'rgba(239,68,68,0.06)',
-              border: `1px solid ${appeal.status === 'APPROVED' ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}`
-            }}>
-            <p className="text-xs font-bold uppercase tracking-wider mb-2"
-              style={{ color: appeal.status === 'APPROVED' ? '#34d399' : '#f87171' }}>
+          <div className={`rounded-lg p-4 border ${resultClass}`}>
+            <p className="text-xs font-semibold uppercase tracking-wider mb-2">
               {appeal.status === 'APPROVED' ? '✅ Phản hồi từ Admin' : '❌ Phản hồi từ Admin'}
             </p>
-            <p className="text-sm text-gray-700">
+            <p className="text-sm text-text-primary">
               {appeal.admin_note || (appeal.status === 'APPROVED'
                 ? 'Nội dung của bạn đã được khôi phục và hiển thị lại bình thường.'
                 : 'Kháng cáo không được chấp nhận sau khi xem xét.')}
@@ -102,7 +92,7 @@ function StatusCard({ appeal }) {
 
         {/* PENDING: thông báo đang chờ */}
         {appeal.status === 'PENDING' && (
-          <p className="text-xs text-gray-400 text-center">
+          <p className="text-xs text-text-secondary text-center">
             ⏳ Admin sẽ xem xét và phản hồi trong vòng 24 giờ
           </p>
         )}
@@ -135,40 +125,40 @@ export default function MyAppealsPage() {
 
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="w-8 h-8 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen flex items-center justify-center bg-bg">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-border border-t-text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-bg">
       <div className="max-w-2xl mx-auto px-4 py-10">
         {/* Header */}
         <div className="mb-8">
-          <Link href="/" className="text-sm text-gray-400 hover:text-gray-600 mb-4 inline-flex items-center gap-1">
+          <Link href="/" className="focus-ring text-sm text-text-secondary hover:text-text-primary mb-4 inline-flex items-center gap-1">
             ← Về trang chủ
           </Link>
-          <h1 className="text-2xl font-bold text-gray-900 mt-2">Kháng cáo của tôi</h1>
-          <p className="text-gray-500 text-sm mt-1">
+          <h1 className="text-2xl font-semibold tracking-tight text-text-primary mt-2">Kháng cáo của tôi</h1>
+          <p className="text-text-secondary text-sm mt-1">
             Xem lại nội dung bạn đã kháng cáo và kết quả từ admin
           </p>
 
           {/* Stats */}
           {appeals.length > 0 && (
             <div className="flex gap-4 mt-4">
-              {pending  > 0 && <span className="text-xs font-semibold text-amber-600 bg-amber-50 border border-amber-200 px-3 py-1 rounded-full">⏳ {pending} đang chờ</span>}
-              {approved > 0 && <span className="text-xs font-semibold text-green-700 bg-green-50 border border-green-200 px-3 py-1 rounded-full">✅ {approved} được chấp nhận</span>}
-              {rejected > 0 && <span className="text-xs font-semibold text-red-600 bg-red-50 border border-red-200 px-3 py-1 rounded-full">❌ {rejected} bị từ chối</span>}
+              {pending  > 0 && <span className="text-xs font-semibold text-warning bg-warning-subtle border border-border px-3 py-1 rounded-full">⏳ {pending} đang chờ</span>}
+              {approved > 0 && <span className="text-xs font-semibold text-success bg-success-subtle border border-border px-3 py-1 rounded-full">✅ {approved} được chấp nhận</span>}
+              {rejected > 0 && <span className="text-xs font-semibold text-danger bg-danger-subtle border border-border px-3 py-1 rounded-full">❌ {rejected} bị từ chối</span>}
             </div>
           )}
         </div>
 
         {appeals.length === 0 ? (
-          <div className="text-center py-20 bg-white rounded-2xl border border-gray-100">
-            <ShieldAlert className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-            <p className="font-semibold text-gray-700">Chưa có kháng cáo nào</p>
-            <p className="text-sm text-gray-400 mt-1">
+          <div className="text-center py-20 card">
+            <ShieldAlert className="w-12 h-12 text-text-tertiary mx-auto mb-3" />
+            <p className="font-semibold text-text-primary">Chưa có kháng cáo nào</p>
+            <p className="text-sm text-text-secondary mt-1">
               Khi nội dung của bạn bị hệ thống flag, bạn có thể gửi kháng cáo từ thông báo.
             </p>
           </div>

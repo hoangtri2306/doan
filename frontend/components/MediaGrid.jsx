@@ -72,7 +72,7 @@ function Lightbox({ media, startIndex, onClose }) {
               src={cur.url}
               controls
               autoPlay
-              className="max-w-full max-h-full rounded-xl outline-none"
+              className="max-w-full max-h-full rounded-lg outline-none"
               style={{ maxHeight: 'calc(100vh - 180px)' }}
             />
           ) : (
@@ -80,7 +80,7 @@ function Lightbox({ media, startIndex, onClose }) {
               key={cur.url}
               src={cur.url}
               alt=""
-              className="max-w-full object-contain rounded-xl select-none"
+              className="max-w-full object-contain rounded-lg select-none"
               style={{ maxHeight: 'calc(100vh - 180px)' }}
             />
           )}
@@ -118,7 +118,7 @@ function Lightbox({ media, startIndex, onClose }) {
 function Cell({ item, onOpen, overlayCount }) {
   return (
     <div
-      className="relative w-full h-full cursor-pointer group overflow-hidden bg-neutral-200"
+      className="relative w-full h-full cursor-pointer group overflow-hidden bg-surface-hover"
       onClick={onOpen}
     >
       {item.type === 'IMAGE' ? (
@@ -164,18 +164,18 @@ export default function MediaGrid({ media }) {
   if (n === 1) {
     const item = media[0];
     grid = (
-      <div className="rounded-xl overflow-hidden bg-neutral-100 mt-3" onClick={e => e.stopPropagation()}>
+      <div className="rounded-lg overflow-hidden bg-surface-hover mt-3" onClick={e => e.stopPropagation()}>
         {item.type === 'IMAGE' ? (
           <img
             src={item.url}
             alt=""
             loading="lazy"
             onClick={open(0)}
-            className="w-full object-contain rounded-xl cursor-pointer hover:brightness-95 transition-all"
+            className="w-full object-contain rounded-lg cursor-pointer hover:brightness-95 transition-all"
             style={{ maxHeight: 600, display: 'block' }}
           />
         ) : (
-          <div className="relative cursor-pointer group rounded-xl overflow-hidden" onClick={open(0)}>
+          <div className="relative cursor-pointer group rounded-lg overflow-hidden" onClick={open(0)}>
             <video
               src={item.url}
               muted
@@ -198,7 +198,7 @@ export default function MediaGrid({ media }) {
   else if (n === 2) {
     grid = (
       <div
-        className="mt-3 rounded-xl overflow-hidden grid grid-cols-2 gap-0.5"
+        className="mt-3 rounded-lg overflow-hidden grid grid-cols-2 gap-0.5"
         style={{ height: GRID_H }}
         onClick={e => e.stopPropagation()}
       >
@@ -212,7 +212,7 @@ export default function MediaGrid({ media }) {
   else if (n === 3) {
     grid = (
       <div
-        className="mt-3 rounded-xl overflow-hidden grid grid-cols-2 gap-0.5"
+        className="mt-3 rounded-lg overflow-hidden grid grid-cols-2 gap-0.5"
         style={{ height: GRID_H }}
         onClick={e => e.stopPropagation()}
       >
@@ -229,7 +229,7 @@ export default function MediaGrid({ media }) {
   else if (n === 4) {
     grid = (
       <div
-        className="mt-3 rounded-xl overflow-hidden grid grid-cols-2 grid-rows-2 gap-0.5"
+        className="mt-3 rounded-lg overflow-hidden grid grid-cols-2 grid-rows-2 gap-0.5"
         style={{ height: GRID_H }}
         onClick={e => e.stopPropagation()}
       >
@@ -245,7 +245,7 @@ export default function MediaGrid({ media }) {
   else {
     grid = (
       <div
-        className="mt-3 rounded-xl overflow-hidden grid grid-cols-2 gap-0.5"
+        className="mt-3 rounded-lg overflow-hidden grid grid-cols-2 gap-0.5"
         style={{ height: GRID_H }}
         onClick={e => e.stopPropagation()}
       >

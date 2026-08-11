@@ -10,7 +10,13 @@ import { AlertTriangle, Repeat, Quote, Check, Heart, Bookmark, MessageCircle } f
 import { formatDistanceToNow } from 'date-fns';
 import MediaGrid from './MediaGrid';
 
-export default function PostCard({ post: initialPost }) {
+/* Estimate reading time */
+function readingTime(text = '') {
+  const words = text.trim().split(/\s+/).length;
+  return Math.max(1, Math.ceil(words / 200));
+}
+
+export default function PostCard({ post: initialPost, featured = false }) {
   const { isAuthenticated, user } = useAuth();
   const router = useRouter();
   const [liked, setLiked] = useState(initialPost.isLiked);
@@ -32,11 +38,7 @@ export default function PostCard({ post: initialPost }) {
 
   const handleLike = async (e) => {
     e.preventDefault(); e.stopPropagation();
-    if (!isAuthenticated) {
-      toast.error("Please login to like stories");
-      router.push('/login');
-      return;
-    }
+    if (!isAuthenticated) { toast.error("Vui lòng đăng nhập để thích bài viết"); router.push('/login'); return; }
     try {
       const newStatus = !liked;
       setLiked(newStatus);
@@ -47,11 +49,7 @@ export default function PostCard({ post: initialPost }) {
 
   const handleBookmark = async (e) => {
     e.preventDefault(); e.stopPropagation();
-    if (!isAuthenticated) {
-      toast.error("Please login to bookmark stories");
-      router.push('/login');
-      return;
-    }
+    if (!isAuthenticated) { toast.error("Vui lòng đăng nhập để lưu bài viết"); router.push('/login'); return; }
     try {
       const newStatus = !bookmarked;
       setBookmarked(newStatus);
@@ -63,11 +61,7 @@ export default function PostCard({ post: initialPost }) {
 
   const handleRepost = async (e) => {
     e.preventDefault(); e.stopPropagation();
-    if (!isAuthenticated) {
-      toast.error("Please login to repost stories");
-      router.push('/login');
-      return;
-    }
+    if (!isAuthenticated) { toast.error("Vui lòng đăng nhập để chia sẻ bài viết"); router.push('/login'); return; }
     try {
       const api = require('../services/api').default;
       const res = await api.post(`/posts/${displayPost._id}/repost`, {});
@@ -79,183 +73,261 @@ export default function PostCard({ post: initialPost }) {
         setSharesCount(prev => prev + 1);
         setReposted(true);
       }
-    } catch (err) { toast.error(err.response?.data?.message || 'Error reposting'); }
+    } catch (err) { toast.error(err.response?.data?.message || 'Lỗi khi chia sẻ bài viết'); }
   };
 
   const plainText = displayPost.content_html
     ? displayPost.content_html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
     : '';
-
-  const hasTitle = displayPost.title && displayPost.title !== 'No Title' && displayPost.title !== 'Untitled';
+  const minRead = readingTime(plainText);
   const hasMedia = displayPost.media && displayPost.media.length > 0;
+  const hasCover = !hasMedia && displayPost.cover_image;
 
+  const actionBtn = "focus-ring flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium tabular-nums transition-all duration-150";
+
+  /* ─────────────────────────────────────────
+     FEATURED card (first post, larger layout)
+  ───────────────────────────────────────── */
+  if (featured && (hasCover || hasMedia)) {
+    return (
+      <article className="group relative mb-8 overflow-hidden rounded-2xl border border-border bg-surface transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5">
+        {displayPost.is_sensitive && !revealed && (
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-2xl border border-border bg-surface/95 p-6 text-center backdrop-blur-sm">
+            <AlertTriangle className="mb-2 h-7 w-7 text-warning" strokeWidth={1.75} />
+            <h4 className="mb-1 text-sm font-semibold">Nội dung nhạy cảm</h4>
+            <p className="mb-4 max-w-xs text-xs text-text-secondary">Bài viết này chứa nội dung nhạy cảm.</p>
+            <button onClick={e => { e.preventDefault(); e.stopPropagation(); setRevealed(true); }} className="btn btn-primary px-4 py-1.5">
+              Hiển thị nội dung
+            </button>
+          </div>
+        )}
+
+        {/* Cover image */}
+        <Link href={`/post/${displayPost.slug}`} className="block overflow-hidden" style={{ aspectRatio: '16/7' }}>
+          {hasMedia ? (
+            <div onClick={e => e.stopPropagation()} className="h-full">
+              <MediaGrid media={displayPost.media} />
+            </div>
+          ) : (
+            <img
+              src={displayPost.cover_image}
+              alt=""
+              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+            />
+          )}
+        </Link>
+
+        <div className="p-6">
+          {isRepost && (
+            <div className="mb-3 flex items-center gap-1.5 text-xs font-medium text-text-tertiary">
+              <Repeat className="h-3.5 w-3.5" strokeWidth={2} />
+              <Link href={`/u/${initialPost.author?.username}`} className="hover:text-text-secondary" onClick={e => e.stopPropagation()}>
+                {initialPost.author?.username} đã chia sẻ
+              </Link>
+            </div>
+          )}
+
+          {/* Author */}
+          <div className="mb-4 flex items-center gap-2.5">
+            <Link href={`/u/${displayPost.author?.username}`} className="h-9 w-9 shrink-0 overflow-hidden rounded-full border border-border-subtle bg-surface-hover" onClick={e => e.stopPropagation()}>
+              {displayPost.author?.avatar ? (
+                <img src={displayPost.author.avatar} alt="" className="h-full w-full object-cover" />
+              ) : (
+                <span className="flex h-full w-full items-center justify-center text-sm font-bold text-accent">
+                  {displayPost.author?.username?.charAt(0).toUpperCase()}
+                </span>
+              )}
+            </Link>
+            <div>
+              <Link href={`/u/${displayPost.author?.username}`} className="block text-[13px] font-semibold text-text-primary hover:underline" onClick={e => e.stopPropagation()}>
+                {displayPost.author?.username}
+              </Link>
+              <div className="flex items-center gap-1.5 text-xs text-text-tertiary">
+                <span>{displayPost.createdAt ? formatDistanceToNow(new Date(displayPost.createdAt), { addSuffix: true }) : 'vừa xong'}</span>
+                <span>·</span>
+                <span>{minRead} phút đọc</span>
+              </div>
+            </div>
+            {displayPost.tags?.[0] && (
+              <span className="ml-auto tag-pill">{displayPost.tags[0]}</span>
+            )}
+          </div>
+
+          {/* Text */}
+          <Link href={`/post/${displayPost.slug}`} className="block">
+            {plainText && (
+              <p className="clamp-fade text-base font-medium leading-relaxed text-text-primary" style={{ WebkitLineClamp: 2 }}>
+                {plainText}
+              </p>
+            )}
+          </Link>
+
+          {/* Footer */}
+          <div className="mt-4 flex items-center justify-between border-t border-border-subtle pt-4">
+            <div className="-ml-2 flex items-center gap-0.5 text-text-tertiary">
+              <button onClick={handleLike} className={`${actionBtn} hover:bg-red-50 hover:text-danger ${liked ? 'text-danger' : ''}`}>
+                <Heart className={`h-4 w-4 ${liked ? 'fill-danger stroke-danger' : ''}`} strokeWidth={1.75} />
+                {likesCount > 0 && <span>{likesCount}</span>}
+              </button>
+              <Link href={`/post/${displayPost.slug}#comments`} onClick={e => e.stopPropagation()} className={`${actionBtn} hover:bg-surface-hover hover:text-text-primary`}>
+                <MessageCircle className="h-4 w-4" strokeWidth={1.75} />
+              </Link>
+              <button onClick={handleBookmark} className={`${actionBtn} hover:bg-surface-hover hover:text-text-primary ${bookmarked ? 'text-accent-text' : ''}`}>
+                <Bookmark className={`h-4 w-4 ${bookmarked ? 'fill-accent stroke-accent' : ''}`} strokeWidth={1.75} />
+              </button>
+            </div>
+            <Link href={`/post/${displayPost.slug}`} className="text-xs font-semibold text-accent-text hover:underline">
+              Đọc thêm →
+            </Link>
+          </div>
+        </div>
+      </article>
+    );
+  }
+
+  /* ─────────────────────────────────────────
+     STANDARD card (Medium-style: text left, thumb right)
+  ───────────────────────────────────────── */
   return (
-    <article className="premium-card p-6 mb-6 group relative overflow-hidden">
-      {/* Sensitive content overlay */}
+    <article className="group hairline relative -mx-3 rounded-xl px-3 py-5 transition-all duration-200 hover:bg-surface-hover/50">
       {displayPost.is_sensitive && !revealed && (
-        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/70 backdrop-blur-md rounded-2xl p-6 text-center border border-amber-100">
-          <AlertTriangle className="w-9 h-9 text-amber-500 mb-2 animate-pulse" />
-          <h4 className="text-sm font-bold text-neutral-900 mb-1">Nội dung nhạy cảm</h4>
-          <p className="text-xs text-neutral-500 max-w-xs mb-4">
-            Bài viết này chứa nội dung nhạy cảm được đánh dấu bởi quản trị viên.
-          </p>
-          <button
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setRevealed(true);
-            }}
-            className="px-5 py-2 bg-neutral-900 hover:bg-neutral-800 text-white rounded-full text-xs font-bold transition-all shadow-sm active:scale-95"
-          >
+        <div className="absolute inset-3 z-10 flex flex-col items-center justify-center rounded-xl border border-border bg-surface/95 p-6 text-center backdrop-blur-sm">
+          <AlertTriangle className="mb-2 h-7 w-7 text-warning" strokeWidth={1.75} />
+          <h4 className="mb-1 text-sm font-semibold">Nội dung nhạy cảm</h4>
+          <p className="mb-4 max-w-xs text-xs text-text-secondary">Bài viết này chứa nội dung nhạy cảm.</p>
+          <button onClick={e => { e.preventDefault(); e.stopPropagation(); setRevealed(true); }} className="btn btn-primary px-4 py-1.5">
             Hiển thị nội dung
           </button>
         </div>
       )}
 
-      {/* Repost indicator */}
       {isRepost && (
-        <div className="flex items-center gap-1.5 text-xs text-neutral-400 mb-3 font-medium tracking-wide">
-          <Repeat className="w-3.5 h-3.5" />
-          <Link href={`/u/${initialPost.author?.username}`} className="hover:text-neutral-600 transition-colors">
-            {initialPost.author?.username} reposted
+        <div className="mb-2 flex items-center gap-1.5 text-xs font-medium text-text-tertiary">
+          <Repeat className="h-3.5 w-3.5" strokeWidth={2} />
+          <Link href={`/u/${initialPost.author?.username}`} className="hover:text-text-secondary" onClick={e => e.stopPropagation()}>
+            {initialPost.author?.username} đã chia sẻ
           </Link>
         </div>
       )}
 
-      <div>
-        {/* ── Author row ── */}
-        <div className="flex items-center gap-2 mb-3">
-          <Link href={`/u/${displayPost.author?.username}`} className="w-8 h-8 rounded-full overflow-hidden bg-neutral-200 flex-shrink-0 ring-1 ring-neutral-100 hover:opacity-80 transition-opacity">
-            {displayPost.author?.avatar ? (
-              <img src={displayPost.author.avatar} alt="" className="w-full h-full object-cover" />
-            ) : (
-              <span className="w-full h-full flex items-center justify-center text-xs font-bold text-neutral-500">
-                {displayPost.author?.username?.charAt(0).toUpperCase()}
-              </span>
-            )}
-          </Link>
-          <div className="flex items-center gap-1.5 min-w-0">
-            <Link href={`/u/${displayPost.author?.username}`} className="text-sm font-semibold text-neutral-800 hover:text-neutral-600 cursor-pointer truncate">
-              {displayPost.author?.username}
-            </Link>
-            <span className="text-neutral-300 text-xs">·</span>
-            <span className="text-xs text-neutral-400 whitespace-nowrap">
-              {displayPost.createdAt ? formatDistanceToNow(new Date(displayPost.createdAt), { addSuffix: true }) : 'just now'}
+      {/* Author row */}
+      <div className="mb-3 flex items-center gap-2">
+        <Link href={`/u/${displayPost.author?.username}`} className="h-7 w-7 shrink-0 overflow-hidden rounded-full border border-border-subtle bg-surface-hover" onClick={e => e.stopPropagation()}>
+          {displayPost.author?.avatar ? (
+            <img src={displayPost.author.avatar} alt="" className="h-full w-full object-cover" />
+          ) : (
+            <span className="flex h-full w-full items-center justify-center text-xs font-bold text-accent">
+              {displayPost.author?.username?.charAt(0).toUpperCase()}
             </span>
-          </div>
-        </div>
-
-        {/* ── Repost quote ── */}
-        {isRepost && initialPost.content_html && (
-          <p className="text-sm text-neutral-500 italic border-l-2 border-neutral-200 pl-3 mb-3 line-clamp-2">
-            {initialPost.content_html.replace(/<[^>]+>/g, '')}
-          </p>
-        )}
-
-        {/* ── Main content (no title, direct focus on text) ── */}
-        <Link href={`/post/${displayPost.slug}`} className="block group/link">
-          {plainText && (
-            <p className="text-sm sm:text-[15px] text-neutral-500 leading-relaxed line-clamp-3 mb-3">
-              {plainText}
-            </p>
           )}
         </Link>
+        <div className="flex min-w-0 items-center gap-1.5">
+          <Link href={`/u/${displayPost.author?.username}`} className="truncate text-[13px] font-semibold text-text-primary hover:underline" onClick={e => e.stopPropagation()}>
+            {displayPost.author?.username}
+          </Link>
+          <span className="text-text-tertiary">·</span>
+          <span className="whitespace-nowrap text-xs text-text-tertiary">
+            {displayPost.createdAt ? formatDistanceToNow(new Date(displayPost.createdAt), { addSuffix: true }) : 'vừa xong'}
+          </span>
+          <span className="text-text-tertiary">·</span>
+          <span className="whitespace-nowrap text-xs text-text-tertiary">{minRead} phút đọc</span>
+        </div>
+      </div>
 
-        {/* ── Media grid ── */}
-        {hasMedia && (
-          <div className="mb-4" onClick={e => e.stopPropagation()}>
-            <MediaGrid media={displayPost.media} />
+      {/* Repost quote */}
+      {isRepost && initialPost.content_html && (
+        <p className="mb-2.5 line-clamp-2 border-l-2 border-accent/40 pl-3 text-sm italic text-text-secondary">
+          {initialPost.content_html.replace(/<[^>]+>/g, '')}
+        </p>
+      )}
+
+      {/* Main content row: text + thumbnail */}
+      <Link href={`/post/${displayPost.slug}`} className="block">
+        <div className={`flex gap-4 ${hasCover ? 'items-start' : ''}`}>
+          {/* Text block */}
+          <div className="min-w-0 flex-1">
+            {plainText && (
+              <p className="clamp-fade text-[15px] leading-[1.55] text-text-primary/85" style={{ WebkitLineClamp: hasCover ? 3 : 3 }}>
+                {plainText}
+              </p>
+            )}
           </div>
-        )}
 
-        {/* ── Cover image (if no embedded media) ── */}
-        {!hasMedia && displayPost.cover_image && (
-          <Link href={`/post/${displayPost.slug}`} className="block mb-4">
-            <div className="w-full h-48 sm:h-56 rounded-xl overflow-hidden bg-neutral-100">
+          {/* Cover thumbnail (right side) */}
+          {hasCover && (
+            <div className="h-20 w-28 shrink-0 overflow-hidden rounded-lg border border-border-subtle bg-surface-hover sm:h-24 sm:w-36">
               <img
                 src={displayPost.cover_image}
                 alt=""
-                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+                className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.04]"
               />
             </div>
+          )}
+        </div>
+      </Link>
+
+      {/* Media grid (no thumbnail overlap) */}
+      {hasMedia && (
+        <div className="mt-3 overflow-hidden rounded-xl" onClick={e => e.stopPropagation()}>
+          <MediaGrid media={displayPost.media} />
+        </div>
+      )}
+
+      {/* Footer row */}
+      <div className="mt-3.5 flex items-center justify-between">
+        {/* Tags */}
+        <div className="flex min-w-0 items-center gap-1.5">
+          {displayPost.tags?.slice(0, 2).map(tag => (
+            <span key={tag} className="tag-pill">{tag}</span>
+          ))}
+        </div>
+
+        {/* Action buttons */}
+        <div className="-mr-2 flex items-center gap-0.5 text-text-tertiary">
+          <button onClick={handleLike} className={`${actionBtn} hover:bg-red-50 hover:text-danger ${liked ? 'text-danger' : ''}`}>
+            <Heart className={`h-4 w-4 ${liked ? 'fill-danger stroke-danger' : ''}`} strokeWidth={1.75} />
+            {likesCount > 0 && <span>{likesCount}</span>}
+          </button>
+
+          <Link href={`/post/${displayPost.slug}#comments`} onClick={e => e.stopPropagation()} className={`${actionBtn} hover:bg-surface-hover hover:text-text-primary`}>
+            <MessageCircle className="h-4 w-4" strokeWidth={1.75} />
           </Link>
-        )}
 
-        {/* ── Footer row ── */}
-        <div className="flex items-center justify-between">
-          {/* Tags */}
-          <div className="flex items-center gap-2 min-w-0">
-            {displayPost.tags?.slice(0, 2).map(tag => (
-              <span
-                key={tag}
-                className="text-xs font-medium text-neutral-500 bg-neutral-100 hover:bg-neutral-200 px-2.5 py-1 rounded-full cursor-pointer transition-colors truncate"
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
+          <button onClick={handleBookmark} className={`${actionBtn} hover:bg-surface-hover hover:text-text-primary ${bookmarked ? 'text-accent-text' : ''}`}>
+            <Bookmark className={`h-4 w-4 ${bookmarked ? 'fill-accent stroke-accent' : ''}`} strokeWidth={1.75} />
+            {bookmarksCount > 0 && <span>{bookmarksCount}</span>}
+          </button>
 
-          {/* Actions */}
-          <div className="flex items-center gap-1 text-neutral-400">
-            {/* Like */}
+          <div className="relative" onClick={e => e.stopPropagation()}>
             <button
-              onClick={handleLike}
-              className={`flex items-center gap-1 px-2 py-1.5 rounded-full text-xs font-medium transition-all hover:bg-red-50 hover:text-red-500 ${liked ? 'text-red-500' : ''}`}
+              onClick={e => { e.preventDefault(); e.stopPropagation(); setShowRepostMenu(!showRepostMenu); }}
+              className={`${actionBtn} hover:bg-accent-subtle hover:text-accent-text ${reposted ? 'text-accent-text' : ''}`}
             >
-              <Heart className={`w-4 h-4 ${liked ? 'fill-red-500 stroke-red-500' : ''}`} strokeWidth={1.8} />
-              {likesCount > 0 && <span>{likesCount}</span>}
+              <Repeat className="h-4 w-4" strokeWidth={1.75} />
+              {sharesCount > 0 && <span>{sharesCount}</span>}
             </button>
 
-            {/* Comment */}
-            <Link
-              href={`/post/${displayPost.slug}#comments`}
-              onClick={e => e.stopPropagation()}
-              className="flex items-center gap-1 px-2 py-1.5 rounded-full text-xs font-medium transition-all hover:bg-neutral-100 hover:text-neutral-700"
-            >
-              <MessageCircle className="w-4 h-4" strokeWidth={1.8} />
-            </Link>
-
-            {/* Bookmark */}
-            <button
-              onClick={handleBookmark}
-              className={`flex items-center gap-1 px-2 py-1.5 rounded-full text-xs font-medium transition-all hover:bg-neutral-100 hover:text-neutral-800 ${bookmarked ? 'text-neutral-900' : ''}`}
-            >
-              <Bookmark className={`w-4 h-4 ${bookmarked ? 'fill-neutral-900 stroke-neutral-900' : ''}`} strokeWidth={1.8} />
-              {bookmarksCount > 0 && <span>{bookmarksCount}</span>}
-            </button>
-
-            {/* Repost */}
-            <div className="relative" onClick={e => e.stopPropagation()}>
-              <button
-                onClick={e => { e.preventDefault(); e.stopPropagation(); setShowRepostMenu(!showRepostMenu); }}
-                className={`flex items-center gap-1 px-2 py-1.5 rounded-full text-xs font-medium transition-all hover:bg-green-50 hover:text-green-600 ${reposted ? 'text-green-600' : ''}`}
-              >
-                <Repeat className="w-4 h-4" strokeWidth={1.8} />
-                {sharesCount > 0 && <span>{sharesCount}</span>}
-              </button>
-
-              {showRepostMenu && (
-                <>
-                  <div className="fixed inset-0 z-40" onClick={e => { e.preventDefault(); e.stopPropagation(); setShowRepostMenu(false); }} />
-                  <div className="absolute bottom-full right-0 mb-2 w-44 bg-white rounded-xl shadow-lg border border-neutral-100 py-1 z-50 overflow-hidden">
-                    <button
-                      onClick={e => { e.preventDefault(); e.stopPropagation(); setShowRepostMenu(false); handleRepost(e); }}
-                      className="w-full px-4 py-2.5 text-left flex items-center gap-3 hover:bg-neutral-50 text-sm text-neutral-700 transition-colors"
-                    >
-                      {reposted ? <Check className="w-4 h-4 text-green-600" /> : <Repeat className="w-4 h-4" />}
-                      <span className={reposted ? 'text-green-600 font-semibold' : 'font-medium'}>{reposted ? 'Unrepost' : 'Repost'}</span>
-                    </button>
-                    <button
-                      onClick={e => { e.preventDefault(); e.stopPropagation(); setShowRepostMenu(false); alert('Coming soon!'); }}
-                      className="w-full px-4 py-2.5 text-left flex items-center gap-3 hover:bg-neutral-50 text-sm text-neutral-700 transition-colors"
-                    >
-                      <Quote className="w-4 h-4" />
-                      <span className="font-medium">Quote</span>
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
+            {showRepostMenu && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={e => { e.preventDefault(); e.stopPropagation(); setShowRepostMenu(false); }} />
+                <div className="card elevated-md animate-scale-in absolute bottom-full right-0 z-50 mb-2 w-44 overflow-hidden py-1">
+                  <button
+                    onClick={e => { e.preventDefault(); e.stopPropagation(); setShowRepostMenu(false); handleRepost(e); }}
+                    className="flex w-full items-center gap-3 px-3.5 py-2.5 text-left text-sm text-text-primary transition-colors hover:bg-surface-hover"
+                  >
+                    {reposted ? <Check className="h-4 w-4 text-success" /> : <Repeat className="h-4 w-4" />}
+                    <span className={reposted ? 'font-semibold text-success' : 'font-medium'}>{reposted ? 'Bỏ chia sẻ' : 'Chia sẻ'}</span>
+                  </button>
+                  <button
+                    onClick={e => { e.preventDefault(); e.stopPropagation(); setShowRepostMenu(false); alert('Sắp ra mắt!'); }}
+                    className="flex w-full items-center gap-3 px-3.5 py-2.5 text-left text-sm text-text-primary transition-colors hover:bg-surface-hover"
+                  >
+                    <Quote className="h-4 w-4" />
+                    <span className="font-medium">Trích dẫn</span>
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>

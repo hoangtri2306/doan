@@ -28,7 +28,7 @@ export default function ViolationsPage() {
       const res = await getViolations();
       setUsers(res.data || []);
     } catch {
-      showToast('Failed to load violations', 'error');
+      showToast('Không tải được dữ liệu vi phạm', 'error');
     } finally {
       setLoading(false);
     }
@@ -42,10 +42,10 @@ export default function ViolationsPage() {
       if (action === 'BAN') await banUser(id);
       if (action === 'MUTE') await muteUser(id);
       if (action === 'RESET') await resetScore(id);
-      showToast(`Action "${action}" applied successfully`);
+      showToast(`Đã thực hiện thành công: "${action}"`);
       fetchViolations();
     } catch {
-      showToast(`Failed to ${action} user`, 'error');
+      showToast(`Không thể thực hiện thao tác`, 'error');
     } finally {
       setActionLoading(null);
     }
@@ -62,8 +62,8 @@ export default function ViolationsPage() {
       )}
 
       <div>
-        <h2 className="text-xl font-bold text-white">Violations Center</h2>
-        <p className="text-slate-500 text-sm mt-0.5">Users with high violation scores or restrictive status</p>
+        <h2 className="text-xl font-bold text-white">Quản lý vi phạm</h2>
+        <p className="text-slate-500 text-sm mt-0.5">Người dùng có điểm vi phạm cao hoặc đang bị hạn chế</p>
       </div>
 
       <div className="flex gap-2 flex-wrap">
@@ -80,18 +80,18 @@ export default function ViolationsPage() {
 
       <div className="rounded-2xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
         <div className="grid grid-cols-12 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)' }}>
-          <div className="col-span-4">User</div>
-          <div className="col-span-2 text-center">Status</div>
+          <div className="col-span-4">Người dùng</div>
+          <div className="col-span-2 text-center">Trạng thái</div>
           <div className="col-span-2 text-center">Spam</div>
           <div className="col-span-2 text-center">Toxic</div>
-          <div className="col-span-1 text-center">Score</div>
-          <div className="col-span-1 text-right">Actions</div>
+          <div className="col-span-1 text-center">Điểm</div>
+          <div className="col-span-1 text-right">Thao tác</div>
         </div>
 
         {loading ? (
-          <div className="py-20 text-center text-slate-500">Loading violations...</div>
+          <div className="py-20 text-center text-slate-500">Đang tải...</div>
         ) : filtered.length === 0 ? (
-          <div className="py-20 text-center text-slate-500">No violations found.</div>
+          <div className="py-20 text-center text-slate-500">Không có vi phạm nào.</div>
         ) : (
           filtered.map((user, idx) => {
             const statusStyle = STATUS_STYLES[user.status] || STATUS_STYLES.ACTIVE;
@@ -107,13 +107,13 @@ export default function ViolationsPage() {
                 <div className="col-span-2 text-center text-slate-400 text-sm font-bold">{user.toxicCount ?? 0}</div>
                 <div className="col-span-1 text-center font-bold" style={{ color: user.violationScore > 10 ? '#f87171' : user.violationScore > 5 ? '#fbbf24' : '#94a3b8' }}>{user.violationScore ?? 0}</div>
                 <div className="col-span-1 flex justify-end gap-1">
-                  <button onClick={() => handleAction('MUTE', user.userId)} disabled={user.status === 'MUTED' || !!actionLoading} className="p-1.5 rounded-lg hover:bg-slate-500/10 text-slate-500 hover:text-slate-300 transition-colors disabled:opacity-30" title="Mute user">
+                  <button onClick={() => handleAction('MUTE', user.userId)} disabled={user.status === 'MUTED' || !!actionLoading} className="p-1.5 rounded-lg hover:bg-slate-500/10 text-slate-500 hover:text-slate-300 transition-colors disabled:opacity-30" title="Tắt tiếng">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" /></svg>
                   </button>
-                  <button onClick={() => handleAction('BAN', user.userId)} disabled={user.status === 'BANNED' || !!actionLoading} className="p-1.5 rounded-lg hover:bg-red-500/10 text-slate-500 hover:text-red-400 transition-colors disabled:opacity-30" title="Ban user">
+                  <button onClick={() => handleAction('BAN', user.userId)} disabled={user.status === 'BANNED' || !!actionLoading} className="p-1.5 rounded-lg hover:bg-red-500/10 text-slate-500 hover:text-red-400 transition-colors disabled:opacity-30" title="Cấm tài khoản">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg>
                   </button>
-                  <button onClick={() => handleAction('RESET', user.userId)} disabled={!!actionLoading} className="p-1.5 rounded-lg hover:bg-green-500/10 text-slate-500 hover:text-green-400 transition-colors" title="Reset score">
+                  <button onClick={() => handleAction('RESET', user.userId)} disabled={!!actionLoading} className="p-1.5 rounded-lg hover:bg-green-500/10 text-slate-500 hover:text-green-400 transition-colors" title="Reset điểm">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                   </button>
                 </div>

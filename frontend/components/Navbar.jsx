@@ -6,12 +6,41 @@ import { User, LogOut, PenSquare, Mail, ShieldAlert } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { getUnreadCount } from '../services/message.service';
 import { io } from 'socket.io-client';
-
 import NotificationBell from './NotificationBell';
+
+/* ── Brand logo ── */
+function InkwellLogo() {
+  return (
+    <Link href="/" className="focus-ring flex items-center gap-2.5 rounded-md group">
+      {/* Feather quill icon */}
+      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent text-white shadow-sm transition-all duration-200 group-hover:shadow-md group-hover:scale-105">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"/>
+          <line x1="16" y1="8" x2="2" y2="22"/>
+          <line x1="17.5" y1="15" x2="9" y2="15"/>
+        </svg>
+      </div>
+      <span
+        className="hidden sm:block text-[17px] font-bold tracking-tight text-text-primary transition-colors group-hover:text-accent"
+        style={{ fontFamily: 'var(--playfair-font), Georgia, serif', letterSpacing: '-0.02em' }}
+      >
+        Inkwell
+      </span>
+    </Link>
+  );
+}
 
 export default function Navbar() {
   const { isAuthenticated, user, logout } = useAuth();
   const [unreadMessages, setUnreadMessages] = useState(0);
+  const [scrolled, setScrolled] = useState(false);
+
+  /* Scroll shadow */
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 8);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   useEffect(() => {
     if (isAuthenticated && user) {
@@ -27,10 +56,7 @@ export default function Navbar() {
 
       const socket = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5000');
       socket.emit('join_user_room', user.id);
-
-      socket.on('new_message', () => {
-        setUnreadMessages(prev => prev + 1);
-      });
+      socket.on('new_message', () => setUnreadMessages(prev => prev + 1));
 
       const handleMessagesRead = () => fetchUnread();
       window.addEventListener('messages_read', handleMessagesRead);
@@ -43,68 +69,108 @@ export default function Navbar() {
   }, [isAuthenticated, user]);
 
   return (
-    <nav className="glass sticky top-0 z-50 border-b border-gray-100/50 transition-colors duration-300">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16 items-center">
-          <div className="flex-shrink-0 flex items-center">
-            <a href="/" className="text-2xl font-black tracking-tighter gradient-text">
-              Blog
-            </a>
-          </div>
-          <div className="flex items-center space-x-5">
-            {isAuthenticated ? (
-              <>
-                {user?.role === 'ADMIN' && (
-                  <Link href="/admin" className="text-violet-600 hover:text-violet-800 font-semibold text-xs px-3 py-1.5 rounded-full bg-violet-50 border border-violet-100 transition-colors">
-                    Admin
-                  </Link>
-                )}
-                <Link href="/create" className="text-gray-500 hover:text-gray-900 flex items-center space-x-1.5 transition-colors">
-                  <PenSquare className="w-5 h-5" />
-                  <span className="hidden sm:inline font-medium text-sm">Write</span>
-                </Link>
-                <NotificationBell />
-                <Link href="/messages" className="text-gray-500 hover:text-gray-900 transition-colors relative">
-                  <Mail className="w-5 h-5" />
-                  {unreadMessages > 0 && (
-                    <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[10px] font-bold flex items-center justify-center rounded-full border-2 border-white shadow-sm">
-                      {unreadMessages > 9 ? '9+' : unreadMessages}
-                    </span>
-                  )}
-                </Link>
-                {/* Link kháng cáo */}
-                <Link href="/appeals" title="Kháng cáo của tôi" className="text-gray-400 hover:text-orange-500 transition-colors p-1">
-                  <ShieldAlert className="w-5 h-5" />
-                </Link>
-                <Link href="/profile" className="text-gray-500 hover:text-gray-900 focus:outline-none flex items-center">
-                  {user?.avatar || user?.avatar_url ? (
-                    <img 
-                      src={user.avatar || user.avatar_url} 
-                      alt="Profile" 
-                      className="w-9 h-9 rounded-full object-cover border border-gray-200 shadow-sm transition-colors" 
-                    />
-                  ) : (
-                    <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-gray-100 to-gray-200 flex items-center justify-center text-gray-600 font-bold text-sm border border-gray-200 shadow-sm transition-colors">
-                      {user?.username ? user.username.charAt(0).toUpperCase() : <User className="w-5 h-5" />}
-                    </div>
-                  )}
-                </Link>
-                <button onClick={logout} className="text-gray-400 hover:text-red-500 transition-colors p-1.5 rounded-full hover:bg-red-50">
-                  <LogOut className="w-5 h-5" />
-                </button>
-              </>
-            ) : (
+    <nav
+      className={`sticky top-0 z-50 border-b bg-bg/90 backdrop-blur-xl transition-shadow duration-300 ${
+        scrolled ? 'shadow-sm border-border' : 'border-transparent'
+      }`}
+    >
+      <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-4 sm:px-6 lg:px-8">
+        <InkwellLogo />
 
-              <>
-                <Link href="/login" className="text-gray-600 hover:text-gray-900 font-medium text-sm transition-colors">
-                  Sign In
+        <div className="flex items-center gap-1">
+          {isAuthenticated ? (
+            <>
+              {user?.role === 'ADMIN' && (
+                <Link
+                  href="/admin"
+                  className="focus-ring mr-1 rounded-md border border-border px-2.5 py-1 text-xs font-semibold text-text-secondary transition-all hover:border-accent hover:bg-accent-subtle hover:text-accent-text"
+                >
+                  Admin
                 </Link>
-                <Link href="/register" className="btn-premium btn-primary px-5 py-2 rounded-full text-sm font-semibold">
-                  Get Started
-                </Link>
-              </>
-            )}
-          </div>
+              )}
+
+              {/* Write button */}
+              <Link
+                href="/create"
+                className="focus-ring mr-1 hidden items-center gap-1.5 rounded-lg px-3 py-1.5 text-[13px] font-semibold text-text-secondary transition-all hover:bg-surface-hover hover:text-text-primary sm:flex"
+              >
+                <PenSquare className="h-4 w-4" strokeWidth={2} />
+                Viết
+              </Link>
+              <Link
+                href="/create"
+                title="Write"
+                className="focus-ring flex h-9 w-9 items-center justify-center rounded-lg text-text-secondary transition-all hover:bg-surface-hover hover:text-text-primary sm:hidden"
+              >
+                <PenSquare className="h-4 w-4" strokeWidth={2} />
+              </Link>
+
+              <NotificationBell />
+
+              {/* Messages */}
+              <Link
+                href="/messages"
+                title="Messages"
+                className="focus-ring relative flex h-9 w-9 items-center justify-center rounded-lg text-text-secondary transition-all hover:bg-surface-hover hover:text-text-primary"
+              >
+                <Mail className="h-4 w-4" strokeWidth={2} />
+                {unreadMessages > 0 && (
+                  <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[9px] font-bold leading-none text-white">
+                    {unreadMessages > 9 ? '9+' : unreadMessages}
+                  </span>
+                )}
+              </Link>
+
+              {/* Appeals */}
+              <Link
+                href="/appeals"
+                title="Kháng cáo của tôi"
+                className="focus-ring flex h-9 w-9 items-center justify-center rounded-lg text-text-secondary transition-all hover:bg-surface-hover hover:text-text-primary"
+              >
+                <ShieldAlert className="h-4 w-4" strokeWidth={2} />
+              </Link>
+
+              {/* Avatar */}
+              <Link
+                href="/profile"
+                title="Profile"
+                className="focus-ring ml-1 flex items-center rounded-full ring-2 ring-transparent transition-all hover:ring-accent/30"
+              >
+                {user?.avatar || user?.avatar_url ? (
+                  <img
+                    src={user.avatar || user.avatar_url}
+                    alt="Profile"
+                    className="h-8 w-8 rounded-full border border-border object-cover"
+                  />
+                ) : (
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-accent text-sm font-bold text-white">
+                    {user?.username ? user.username.charAt(0).toUpperCase() : <User className="h-4 w-4" />}
+                  </div>
+                )}
+              </Link>
+
+              {/* Logout */}
+              <button
+                onClick={logout}
+                title="Log out"
+                className="focus-ring flex h-9 w-9 items-center justify-center rounded-lg text-text-secondary transition-all hover:bg-danger-subtle hover:text-danger"
+              >
+                <LogOut className="h-4 w-4" strokeWidth={2} />
+              </button>
+            </>
+          ) : (
+            <>
+              <Link
+                href="/login"
+                className="focus-ring rounded-lg px-3.5 py-2 text-[13px] font-semibold text-text-secondary transition-all hover:text-text-primary"
+              >
+                Đăng nhập
+              </Link>
+              <Link href="/register" className="btn btn-accent px-4 py-2">
+                Bắt đầu
+              </Link>
+            </>
+          )}
         </div>
       </div>
     </nav>

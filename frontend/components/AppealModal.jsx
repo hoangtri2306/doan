@@ -77,114 +77,114 @@ export default function AppealModal({ target, onClose, onSuccess }) {
 
   // Portal: render vào document.body để thoát khỏi stacking context của navbar
   const modalContent = (
-    <div className="fixed inset-0 z-[9999] overflow-y-auto bg-black/50 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/40 backdrop-blur-[2px] animate-fade-in">
       <div className="flex min-h-full items-center justify-center p-4 py-8">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
+        <div className="card elevated-lg animate-scale-in w-full max-w-lg">
 
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-          <div className="flex items-center gap-2">
-            <ShieldAlert className="w-5 h-5 text-orange-500" />
-            <h2 className="font-bold text-gray-900 text-base">Gửi kháng cáo</h2>
-          </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {submitted ? (
-          <div className="px-6 py-10 text-center">
-            <CheckCircle className="w-14 h-14 text-green-500 mx-auto mb-4" />
-            <h3 className="text-lg font-bold text-gray-900 mb-2">Đã gửi kháng cáo!</h3>
-            <p className="text-sm text-gray-500 mb-5">
-              Admin sẽ xem xét và thông báo kết quả sớm nhất có thể.
-            </p>
-            <a href="/appeals" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-violet-600 hover:bg-violet-700 transition-colors">
-              Xem kháng cáo của tôi →
-            </a>
-          </div>
-        ) : (
-          <div className="px-6 py-5 space-y-4">
-
-            {/* 1. AI verdict */}
-            <div className={`rounded-xl p-4 flex gap-3 ${isSpam ? 'bg-yellow-50 border border-yellow-200' : 'bg-red-50 border border-red-200'}`}>
-              <AlertTriangle className={`w-5 h-5 flex-shrink-0 mt-0.5 ${isSpam ? 'text-yellow-500' : 'text-red-500'}`} />
-              <div>
-                <p className={`text-sm font-semibold ${isSpam ? 'text-yellow-800' : 'text-red-800'}`}>
-                  {targetType.charAt(0).toUpperCase() + targetType.slice(1)} của bạn bị hệ thống phát hiện là{' '}
-                  <span className="font-black">{ai_label || 'vi phạm'}</span>
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  Độ tin cậy: <span className="font-semibold">{scorePct}%</span> · Nội dung đã bị ẩn
-                </p>
-              </div>
+          {/* Header */}
+          <div className="flex items-center justify-between border-b border-border-subtle px-5 py-4">
+            <div className="flex items-center gap-2">
+              <ShieldAlert className="w-5 h-5 text-warning" />
+              <h2 className="text-base font-semibold text-text-primary">Gửi kháng cáo</h2>
             </div>
+            <button onClick={onClose} className="btn btn-ghost h-8 w-8 p-0">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
 
-            {/* 2. Nội dung gốc */}
-            <div className="rounded-xl border border-gray-200 overflow-hidden">
-              <div className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 border-b border-gray-200">
-                {entity_model === 'Post'
-                  ? <FileText className="w-4 h-4 text-gray-400" />
-                  : <MessageSquare className="w-4 h-4 text-gray-400" />}
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  {entity_model === 'Post' ? 'Bài viết bạn đã đăng' : 'Bình luận bạn đã viết'}
-                </p>
-              </div>
-              <div className="px-4 py-3 min-h-[52px]">
-                {fetchingContent ? (
-                  <div className="space-y-2 animate-pulse">
-                    <div className="h-3 bg-gray-200 rounded w-full" />
-                    <div className="h-3 bg-gray-200 rounded w-4/5" />
-                  </div>
-                ) : displayContent ? (
-                  <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
-                    {displayContent.slice(0, 400)}
-                    {displayContent.length > 400 && <span className="text-gray-400 italic"> ...(rút gọn)</span>}
+          {submitted ? (
+            <div className="px-5 py-10 text-center">
+              <CheckCircle className="w-14 h-14 text-success mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-text-primary mb-2">Đã gửi kháng cáo!</h3>
+              <p className="text-sm text-text-secondary mb-5">
+                Admin sẽ xem xét và thông báo kết quả sớm nhất có thể.
+              </p>
+              <a href="/appeals" className="btn btn-primary inline-flex px-5 py-2.5">
+                Xem kháng cáo của tôi →
+              </a>
+            </div>
+          ) : (
+            <div className="px-5 py-4 space-y-4">
+
+              {/* 1. AI verdict */}
+              <div className={`rounded-lg p-4 flex gap-3 border ${isSpam ? 'bg-warning-subtle border-warning/25' : 'bg-danger-subtle border-danger/25'}`}>
+                <AlertTriangle className={`w-5 h-5 flex-shrink-0 mt-0.5 ${isSpam ? 'text-warning' : 'text-danger'}`} />
+                <div>
+                  <p className={`text-sm font-semibold ${isSpam ? 'text-warning' : 'text-danger'}`}>
+                    {targetType.charAt(0).toUpperCase() + targetType.slice(1)} của bạn bị hệ thống phát hiện là{' '}
+                    <span className="font-bold">{ai_label || 'vi phạm'}</span>
                   </p>
-                ) : (
-                  <p className="text-xs text-gray-400 italic">Không thể tải nội dung gốc.</p>
-                )}
+                  <p className="text-xs text-text-secondary mt-1">
+                    Độ tin cậy: <span className="font-semibold">{scorePct}%</span> · Nội dung đã bị ẩn
+                  </p>
+                </div>
+              </div>
+
+              {/* 2. Nội dung gốc */}
+              <div className="rounded-lg border border-border overflow-hidden">
+                <div className="flex items-center gap-2 px-4 py-2.5 bg-bg-subtle border-b border-border">
+                  {entity_model === 'Post'
+                    ? <FileText className="w-4 h-4 text-text-secondary" />
+                    : <MessageSquare className="w-4 h-4 text-text-secondary" />}
+                  <p className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
+                    {entity_model === 'Post' ? 'Bài viết bạn đã đăng' : 'Bình luận bạn đã viết'}
+                  </p>
+                </div>
+                <div className="px-4 py-3 min-h-[52px]">
+                  {fetchingContent ? (
+                    <div className="space-y-2 animate-pulse">
+                      <div className="skeleton h-3 w-full" />
+                      <div className="skeleton h-3 w-4/5" />
+                    </div>
+                  ) : displayContent ? (
+                    <p className="text-sm text-text-primary whitespace-pre-wrap leading-relaxed">
+                      {displayContent.slice(0, 400)}
+                      {displayContent.length > 400 && <span className="text-text-secondary italic"> ...(rút gọn)</span>}
+                    </p>
+                  ) : (
+                    <p className="text-xs text-text-secondary italic">Không thể tải nội dung gốc.</p>
+                  )}
+                </div>
+              </div>
+
+              {/* 3. Lý do kháng cáo */}
+              <div>
+                <label className="block text-sm font-semibold text-text-primary mb-2">
+                  Lý do kháng cáo <span className="text-danger">*</span>
+                </label>
+                <textarea
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                  placeholder="Giải thích tại sao bạn cho rằng AI đã nhận định sai về nội dung này..."
+                  rows={3}
+                  maxLength={500}
+                  className="input-field resize-none"
+                />
+                <div className="flex justify-between mt-1">
+                  {error && <p className="text-xs text-danger">{error}</p>}
+                  <p className="text-xs text-text-tertiary ml-auto">{reason.length}/500</p>
+                </div>
+              </div>
+
+              <p className="text-xs text-text-secondary">
+                📌 Admin sẽ xem xét trong vòng 24 giờ và thông báo kết quả qua hệ thống.
+              </p>
+
+              <div className="flex items-center justify-end gap-2 border-t border-border-subtle -mx-5 px-5 pt-4">
+                <button onClick={onClose} className="btn btn-secondary flex-1 py-2.5">
+                  Huỷ
+                </button>
+                <button
+                  onClick={handleSubmit}
+                  disabled={loading || !reason.trim()}
+                  className="btn btn-primary flex-1 py-2.5"
+                >
+                  {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> Đang gửi...</> : 'Gửi kháng cáo'}
+                </button>
               </div>
             </div>
-
-            {/* 3. Lý do kháng cáo */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Lý do kháng cáo <span className="text-red-500">*</span>
-              </label>
-              <textarea
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                placeholder="Giải thích tại sao bạn cho rằng AI đã nhận định sai về nội dung này..."
-                rows={3}
-                maxLength={500}
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-300 focus:border-transparent resize-none"
-              />
-              <div className="flex justify-between mt-1">
-                {error && <p className="text-xs text-red-500">{error}</p>}
-                <p className="text-xs text-gray-400 ml-auto">{reason.length}/500</p>
-              </div>
-            </div>
-
-            <p className="text-xs text-gray-400">
-              📌 Admin sẽ xem xét trong vòng 24 giờ và thông báo kết quả qua hệ thống.
-            </p>
-
-            <div className="flex gap-3">
-              <button onClick={onClose} className="flex-1 py-2.5 rounded-xl text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors">
-                Huỷ
-              </button>
-              <button
-                onClick={handleSubmit}
-                disabled={loading || !reason.trim()}
-                className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
-              >
-              {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> Đang gửi...</> : 'Gửi kháng cáo'}
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
       </div>
     </div>
   );

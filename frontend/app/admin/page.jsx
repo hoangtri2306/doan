@@ -124,16 +124,16 @@ export default function AdminDashboard() {
   useEffect(() => { fetchAll(); }, []);
 
   const statCards = [
-    { label: 'Registered Users', value: stats?.totalUsers, href: '/admin/users', colorStyle: { bg: 'rgba(99,102,241,0.15)', border: 'rgba(99,102,241,0.3)', icon: '#818cf8', glow: 'rgba(99,102,241,0.4)' }, icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg> },
-    { label: 'Published Posts', value: stats?.publicPosts, href: '/admin/posts', colorStyle: { bg: 'rgba(16,185,129,0.15)', border: 'rgba(16,185,129,0.3)', icon: '#34d399', glow: 'rgba(16,185,129,0.4)' }, icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg> },
-    { label: 'Pending Reports', value: stats?.pendingReports, href: '/admin/reports', delta: stats?.pendingReports > 0 ? stats.pendingReports : undefined, colorStyle: { bg: 'rgba(245,158,11,0.15)', border: 'rgba(245,158,11,0.3)', icon: '#fbbf24', glow: 'rgba(245,158,11,0.4)' }, icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" /></svg> },
-    { label: 'Banned Users', value: stats?.bannedUsers, href: '/admin/violations', delta: stats?.bannedUsers > 0 ? stats.bannedUsers : undefined, colorStyle: { bg: 'rgba(239,68,68,0.15)', border: 'rgba(239,68,68,0.3)', icon: '#f87171', glow: 'rgba(239,68,68,0.4)' }, icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg> },
-    { label: 'Users on Warning', value: stats?.warningUsers, href: '/admin/violations', colorStyle: { bg: 'rgba(251,146,60,0.15)', border: 'rgba(251,146,60,0.3)', icon: '#fb923c', glow: 'rgba(251,146,60,0.4)' }, icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg> },
-    { label: 'Moderation Cases', value: stats?.activeViolations, href: '/admin/moderation', colorStyle: { bg: 'rgba(124,58,237,0.15)', border: 'rgba(124,58,237,0.3)', icon: '#a78bfa', glow: 'rgba(124,58,237,0.4)' }, icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg> },
+    { label: 'Người dùng', value: stats?.totalUsers, href: '/admin/users', colorStyle: { bg: 'rgba(99,102,241,0.15)', border: 'rgba(99,102,241,0.3)', icon: '#818cf8', glow: 'rgba(99,102,241,0.4)' }, icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg> },
+    { label: 'Bài đă đăng', value: stats?.publicPosts, href: '/admin/posts', colorStyle: { bg: 'rgba(16,185,129,0.15)', border: 'rgba(16,185,129,0.3)', icon: '#34d399', glow: 'rgba(16,185,129,0.4)' }, icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg> },
+    { label: 'Báo cáo chờ', value: stats?.pendingReports, href: '/admin/reports', delta: stats?.pendingReports > 0 ? stats.pendingReports : undefined, colorStyle: { bg: 'rgba(245,158,11,0.15)', border: 'rgba(245,158,11,0.3)', icon: '#fbbf24', glow: 'rgba(245,158,11,0.4)' }, icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" /></svg> },
+    { label: 'Bị cấm', value: stats?.bannedUsers, href: '/admin/violations', delta: stats?.bannedUsers > 0 ? stats.bannedUsers : undefined, colorStyle: { bg: 'rgba(239,68,68,0.15)', border: 'rgba(239,68,68,0.3)', icon: '#f87171', glow: 'rgba(239,68,68,0.4)' }, icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg> },
+    { label: 'Cảnh cáo', value: stats?.warningUsers, href: '/admin/violations', colorStyle: { bg: 'rgba(251,146,60,0.15)', border: 'rgba(251,146,60,0.3)', icon: '#fb923c', glow: 'rgba(251,146,60,0.4)' }, icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg> },
+    { label: 'Kiểm duyệt', value: stats?.activeViolations, href: '/admin/moderation', colorStyle: { bg: 'rgba(124,58,237,0.15)', border: 'rgba(124,58,237,0.3)', icon: '#a78bfa', glow: 'rgba(124,58,237,0.4)' }, icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg> },
   ];
 
   const now = new Date();
-  const greeting = now.getHours() < 12 ? 'Good morning' : now.getHours() < 18 ? 'Good afternoon' : 'Good evening';
+  const greeting = now.getHours() < 12 ? 'Chào buổi sáng' : now.getHours() < 18 ? 'Chào buổi chiều' : 'Chào buổi tối';
   const displayName = user?.email?.split('@')[0] || 'Admin';
 
   return (
@@ -145,14 +145,14 @@ export default function AdminDashboard() {
         <div className="relative z-10">
           <p className="text-slate-400 text-sm mb-0.5">{greeting},</p>
           <h1 className="text-2xl font-bold text-white capitalize">{displayName} 👋</h1>
-          <p className="text-slate-500 text-sm mt-1">{now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</p>
+          <p className="text-slate-500 text-sm mt-1">{now.toLocaleDateString('vi-VN', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</p>
         </div>
         <div className="relative z-10 flex flex-col items-end gap-2">
           <button onClick={fetchAll}
             className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all hover:opacity-80"
             style={{ background: 'rgba(124,58,237,0.2)', color: '#c4b5fd', border: '1px solid rgba(124,58,237,0.35)' }}>
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-            Refresh
+            Làm mới
           </button>
           {lastUpdated && <p className="text-slate-600 text-xs">Updated {lastUpdated.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</p>}
         </div>
@@ -169,12 +169,12 @@ export default function AdminDashboard() {
         <div className="lg:col-span-3 rounded-2xl p-5 flex flex-col"
           style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-white font-semibold text-sm">System Alerts</h3>
+            <h3 className="text-white font-semibold text-sm">Cảnh báo hệ thống</h3>
             {!loading && alerts.some(a => a.level === 'high') && (
               <span className="flex items-center gap-1.5 text-xs font-semibold text-red-400 px-2.5 py-1 rounded-full"
                 style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)' }}>
                 <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
-                Action Required
+                Cần xử lý
               </span>
             )}
           </div>
@@ -185,23 +185,23 @@ export default function AdminDashboard() {
           )}
           <div className="mt-4 pt-4 flex gap-3" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
             <Link href="/admin/reports" className="flex-1 text-center py-2 rounded-xl text-xs font-semibold transition-all hover:opacity-80"
-              style={{ background: 'rgba(245,158,11,0.12)', color: '#fbbf24', border: '1px solid rgba(245,158,11,0.25)' }}>View All Reports</Link>
+              style={{ background: 'rgba(245,158,11,0.12)', color: '#fbbf24', border: '1px solid rgba(245,158,11,0.25)' }}>Xem tất cả báo cáo</Link>
             <Link href="/admin/moderation" className="flex-1 text-center py-2 rounded-xl text-xs font-semibold transition-all hover:opacity-80"
-              style={{ background: 'rgba(124,58,237,0.12)', color: '#c4b5fd', border: '1px solid rgba(124,58,237,0.25)' }}>Moderation Queue</Link>
+              style={{ background: 'rgba(124,58,237,0.12)', color: '#c4b5fd', border: '1px solid rgba(124,58,237,0.25)' }}>Hàng đợi kiểm duyệt</Link>
           </div>
         </div>
 
         {/* Health */}
         <div className="lg:col-span-2 rounded-2xl p-5 flex flex-col"
           style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
-          <h3 className="text-white font-semibold text-sm mb-5">Platform Health</h3>
+          <h3 className="text-white font-semibold text-sm mb-5">Sức khỏe nền tảng</h3>
           {loading ? (
             <div className="space-y-5">{[...Array(3)].map((_, i) => <div key={i} className="space-y-2"><div className="h-3 w-28 rounded animate-pulse" style={{ background: 'rgba(255,255,255,0.07)' }} /><div className="h-2 rounded-full animate-pulse" style={{ background: 'rgba(255,255,255,0.05)' }} /></div>)}</div>
           ) : stats ? (
             <div className="space-y-5 flex-1">
-              <HealthBar label="Healthy Users" value={stats.healthyUsers} total={stats.totalUsers} color="#34d399" />
-              <HealthBar label="Public Content" value={stats.publicPosts} total={stats.totalPosts} color="#818cf8" />
-              <HealthBar label="Users with Issues" value={stats.bannedUsers + stats.mutedUsers + stats.warningUsers} total={stats.totalUsers} color="#f87171" />
+              <HealthBar label="Người dùng hợp lệ" value={stats.healthyUsers} total={stats.totalUsers} color="#34d399" />
+              <HealthBar label="Nội dung công khai" value={stats.publicPosts} total={stats.totalPosts} color="#818cf8" />
+              <HealthBar label="Người dùng vi phạm" value={stats.bannedUsers + stats.mutedUsers + stats.warningUsers} total={stats.totalUsers} color="#f87171" />
             </div>
           ) : null}
           {!loading && stats && (
@@ -220,8 +220,8 @@ export default function AdminDashboard() {
                 </div>
               </div>
               <div>
-                <p className="text-white text-sm font-semibold">Overall Score</p>
-                <p className="text-slate-500 text-xs mt-0.5">{stats.healthyUsers} of {stats.totalUsers} users in good standing</p>
+                <p className="text-white text-sm font-semibold">Tổng quan</p>
+                <p className="text-slate-500 text-xs mt-0.5">{stats.healthyUsers} / {stats.totalUsers} người dùng hợp lệ</p>
               </div>
             </div>
           )}

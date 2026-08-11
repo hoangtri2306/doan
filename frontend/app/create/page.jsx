@@ -3,44 +3,40 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { useRouter } from 'next/navigation';
-import { Image as ImageIcon, Video, X, Loader2 } from 'lucide-react';
+import { Image as ImageIcon, Video, X, Loader2, Globe, Lock, ChevronDown, Tag } from 'lucide-react';
 import api from '../../services/api';
 
-// ── Thumb: một ô ảnh/video trong grid preview ──────────────────────────────
+/* ── Thumb: preview ô ảnh/video ── */
 function Thumb({ item, idx, total, onRemove }) {
   return (
-    <div className="relative w-full h-full group bg-gray-200 overflow-hidden">
+    <div className="relative w-full h-full group bg-surface-hover overflow-hidden">
       {item.type === 'IMAGE' ? (
         <img src={item.url} className="w-full h-full object-cover" alt="" />
       ) : (
         <>
           <video src={item.url} className="w-full h-full object-cover" />
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none bg-black/25">
-            <div className="w-12 h-12 rounded-full bg-black/50 flex items-center justify-center">
-              <div className="w-0 h-0 border-t-[10px] border-t-transparent border-l-[16px] border-l-white border-b-[10px] border-b-transparent ml-1" />
+            <div className="w-10 h-10 rounded-full bg-black/50 flex items-center justify-center">
+              <div className="w-0 h-0 border-t-[8px] border-t-transparent border-l-[14px] border-l-white border-b-[8px] border-b-transparent ml-1" />
             </div>
           </div>
         </>
       )}
-
-      {/* Nút xóa – hiện khi hover */}
       <button
         type="button"
         onClick={() => onRemove(idx)}
-        className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/60 hover:bg-red-600 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-10 shadow-lg"
+        className="focus-ring absolute top-2 right-2 h-7 w-7 rounded-full bg-black/60 hover:bg-danger text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all z-10 shadow-sm"
       >
-        <X size={15} strokeWidth={2.5} />
+        <X size={13} strokeWidth={2.5} />
       </button>
-
-      {/* Số thứ tự */}
-      <div className="absolute bottom-2 left-2 text-[10px] font-bold text-white bg-black/40 px-1.5 py-0.5 rounded-full opacity-0 group-hover:opacity-100 transition-all pointer-events-none select-none">
+      <div className="absolute bottom-1.5 left-2 text-[10px] font-bold text-white bg-black/40 px-1.5 py-0.5 rounded-full opacity-0 group-hover:opacity-100 transition-all pointer-events-none select-none">
         {idx + 1}/{total}
       </div>
     </div>
   );
 }
 
-// ── PreviewGrid: layout giống Facebook ─────────────────────────────────────
+/* ── PreviewGrid ── */
 function PreviewGrid({ previews, onRemove }) {
   const n = previews.length;
   if (n === 0) return null;
@@ -50,47 +46,33 @@ function PreviewGrid({ previews, onRemove }) {
   );
 
   let grid;
-
   if (n === 1) {
-    grid = (
-      <div className="h-72 sm:h-[420px] rounded-xl overflow-hidden border border-gray-100">
-        {T(0)}
-      </div>
-    );
+    grid = <div className="h-64 sm:h-96 rounded-xl overflow-hidden border border-border">{T(0)}</div>;
   } else if (n === 2) {
-    grid = (
-      <div className="grid grid-cols-2 gap-0.5 h-64 sm:h-80 rounded-xl overflow-hidden border border-gray-100">
-        {T(0)}{T(1)}
-      </div>
-    );
+    grid = <div className="grid grid-cols-2 gap-1 h-56 sm:h-72 rounded-xl overflow-hidden border border-border">{T(0)}{T(1)}</div>;
   } else if (n === 3) {
     grid = (
-      <div className="grid grid-cols-2 gap-0.5 h-64 sm:h-80 rounded-xl overflow-hidden border border-gray-100">
+      <div className="grid grid-cols-2 gap-1 h-56 sm:h-72 rounded-xl overflow-hidden border border-border">
         {T(0)}
-        <div className="grid grid-rows-2 gap-0.5 h-full">
-          {T(1)}{T(2)}
-        </div>
+        <div className="grid grid-rows-2 gap-1 h-full">{T(1)}{T(2)}</div>
       </div>
     );
   } else if (n === 4) {
     grid = (
-      <div className="grid grid-cols-2 grid-rows-2 gap-0.5 h-64 sm:h-80 rounded-xl overflow-hidden border border-gray-100">
+      <div className="grid grid-cols-2 grid-rows-2 gap-1 h-56 sm:h-72 rounded-xl overflow-hidden border border-border">
         {T(0)}{T(1)}{T(2)}{T(3)}
       </div>
     );
   } else {
-    // 5+: cột trái 2 ô, cột phải 3 ô, ô cuối cùng có overlay
     grid = (
-      <div className="grid grid-cols-2 gap-0.5 h-64 sm:h-80 rounded-xl overflow-hidden border border-gray-100">
-        <div className="grid grid-rows-2 gap-0.5 h-full">
-          {T(0)}{T(1)}
-        </div>
-        <div className="grid grid-rows-3 gap-0.5 h-full">
+      <div className="grid grid-cols-2 gap-1 h-56 sm:h-72 rounded-xl overflow-hidden border border-border">
+        <div className="grid grid-rows-2 gap-1 h-full">{T(0)}{T(1)}</div>
+        <div className="grid grid-rows-3 gap-1 h-full">
           {T(2)}{T(3)}
           <div className="relative w-full h-full overflow-hidden">
             {T(4)}
             {n > 5 && (
-              <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white text-2xl font-bold pointer-events-none">
+              <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white text-xl font-bold pointer-events-none">
                 +{n - 5}
               </div>
             )}
@@ -101,15 +83,15 @@ function PreviewGrid({ previews, onRemove }) {
   }
 
   return (
-    <div className="mt-5">
+    <div className="mt-4">
       <div className="flex items-center justify-between mb-2">
-        <span className="text-xs font-medium text-gray-400">
-          {n} file · hover để xóa từng ảnh
+        <span className="text-xs font-medium text-text-tertiary">
+          {n} file{n > 1 ? 's' : ''} đã chọn
         </span>
         <button
           type="button"
           onClick={() => onRemove('all')}
-          className="text-xs text-red-400 hover:text-red-600 font-semibold transition-colors"
+          className="focus-ring text-xs text-danger hover:text-danger/80 font-semibold transition-colors"
         >
           Xóa tất cả
         </button>
@@ -119,9 +101,96 @@ function PreviewGrid({ previews, onRemove }) {
   );
 }
 
-// ── CreatePost ──────────────────────────────────────────────────────────────
+/* ── Visibility selector ── */
+function VisibilitySelector({ value, onChange }) {
+  const [open, setOpen] = useState(false);
+  const opts = [
+    { value: 'PUBLIC', label: 'Công khai', icon: <Globe className="h-3.5 w-3.5" />, desc: 'Mọi người đều xem được' },
+    { value: 'PRIVATE', label: 'Chỉ mình tôi', icon: <Lock className="h-3.5 w-3.5" />, desc: 'Chỉ bạn xem được' },
+  ];
+  const current = opts.find(o => o.value === value);
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen(v => !v)}
+        className="focus-ring flex items-center gap-1.5 rounded-lg border border-border bg-surface px-2.5 py-1.5 text-xs font-semibold text-text-secondary transition-all hover:border-text-tertiary hover:text-text-primary"
+      >
+        {current.icon}
+        {current.label}
+        <ChevronDown className={`h-3 w-3 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div className="card elevated-md animate-scale-in absolute left-0 top-full z-50 mt-1.5 w-52 overflow-hidden py-1">
+            {opts.map(opt => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => { onChange(opt.value); setOpen(false); }}
+                className={`flex w-full items-start gap-3 px-3.5 py-2.5 text-left transition-colors hover:bg-surface-hover ${value === opt.value ? 'bg-accent-subtle' : ''}`}
+              >
+                <span className={`mt-0.5 ${value === opt.value ? 'text-accent-text' : 'text-text-secondary'}`}>{opt.icon}</span>
+                <div>
+                  <p className={`text-sm font-semibold ${value === opt.value ? 'text-accent-text' : 'text-text-primary'}`}>{opt.label}</p>
+                  <p className="text-[11px] text-text-tertiary">{opt.desc}</p>
+                </div>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+/* ── Tag input ── */
+function TagInput({ value, onChange }) {
+  const [input, setInput] = useState('');
+  const tags = value ? value.split(',').map(t => t.trim()).filter(Boolean) : [];
+
+  const addTag = (raw) => {
+    const tag = raw.trim().replace(/^#/, '');
+    if (!tag || tags.includes(tag) || tags.length >= 5) return;
+    onChange([...tags, tag].join(', '));
+    setInput('');
+  };
+
+  const removeTag = (tag) => {
+    onChange(tags.filter(t => t !== tag).join(', '));
+  };
+
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      {tags.map(tag => (
+        <span key={tag} className="inline-flex items-center gap-1 rounded-full bg-accent-subtle px-2.5 py-1 text-[12px] font-semibold text-accent-text">
+          #{tag}
+          <button type="button" onClick={() => removeTag(tag)} className="ml-0.5 text-accent-text/60 hover:text-accent-text">
+            <X size={11} strokeWidth={2.5} />
+          </button>
+        </span>
+      ))}
+      {tags.length < 5 && (
+        <input
+          type="text"
+          placeholder={tags.length === 0 ? "Thêm tag (vd: công nghệ)..." : "Thêm tag..."}
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={e => {
+            if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addTag(input); }
+            if (e.key === 'Backspace' && !input && tags.length > 0) removeTag(tags[tags.length - 1]);
+          }}
+          className="min-w-24 flex-1 bg-transparent text-sm text-text-primary outline-none placeholder-text-tertiary"
+        />
+      )}
+    </div>
+  );
+}
+
+/* ── CreatePost ── */
 export default function CreatePost() {
-  const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [tags, setTags] = useState('');
   const [visibility, setVisibility] = useState('PUBLIC');
@@ -130,6 +199,7 @@ export default function CreatePost() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef(null);
+  const textareaRef = useRef(null);
 
   const { isAuthenticated, loading, user } = useAuth();
   const router = useRouter();
@@ -137,6 +207,13 @@ export default function CreatePost() {
   useEffect(() => {
     if (!loading && !isAuthenticated) router.push('/login');
   }, [loading, isAuthenticated, router]);
+
+  // Auto-focus textarea
+  useEffect(() => {
+    if (!loading && isAuthenticated) {
+      setTimeout(() => textareaRef.current?.focus(), 100);
+    }
+  }, [loading, isAuthenticated]);
 
   if (loading || !isAuthenticated) return null;
 
@@ -155,11 +232,7 @@ export default function CreatePost() {
   };
 
   const removeMedia = (idx) => {
-    if (idx === 'all') {
-      setMediaFiles([]);
-      setPreviews([]);
-      return;
-    }
+    if (idx === 'all') { setMediaFiles([]); setPreviews([]); return; }
     setMediaFiles(prev => prev.filter((_, i) => i !== idx));
     setPreviews(prev => prev.filter((_, i) => i !== idx));
   };
@@ -170,7 +243,7 @@ export default function CreatePost() {
     setIsSubmitting(true);
     try {
       const fd = new FormData();
-      fd.append('title', ''); // No title requested by user
+      fd.append('title', '');
       fd.append('content', content);
       fd.append('content_html', `<p>${content.replace(/\n/g, '<br/>')}</p>`);
       fd.append('content_json', JSON.stringify({ text: content }));
@@ -189,69 +262,82 @@ export default function CreatePost() {
     }
   };
 
+  const canPost = content.trim() || mediaFiles.length > 0;
+  const charCount = content.length;
+
   return (
     <div
-      className={`max-w-3xl mx-auto py-10 px-4 sm:px-0 transition-all duration-200 ${isDragging ? 'scale-[0.99]' : ''}`}
+      className={`mx-auto max-w-2xl py-8 px-4 sm:px-0 transition-all duration-200 ${isDragging ? 'scale-[0.99]' : ''}`}
       onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
       onDragLeave={e => { e.preventDefault(); setIsDragging(false); }}
       onDrop={e => { e.preventDefault(); setIsDragging(false); if (e.dataTransfer.files.length) addFiles(e.dataTransfer.files); }}
     >
-      <div className={`bg-white rounded-2xl shadow-sm border overflow-hidden relative ${isDragging ? 'border-green-400 border-2' : 'border-gray-100'}`}>
+      {/* Page title */}
+      <div className="mb-6 animate-fade-in-up">
+        <h1
+          className="text-2xl font-bold text-text-primary"
+          style={{ fontFamily: 'var(--playfair-font), Georgia, serif', letterSpacing: '-0.02em' }}
+        >
+          Chia sẻ câu chuyện của bạn
+        </h1>
+        <p className="mt-1 text-sm text-text-secondary">Viết điều gì đó đáng để đọc.</p>
+      </div>
 
+      {/* Card */}
+      <div
+        className={`card overflow-hidden animate-fade-in-up delay-100 relative transition-all duration-200 ${
+          isDragging ? 'border-2 border-dashed border-accent shadow-lg' : 'elevated-sm'
+        }`}
+      >
         {/* Drag overlay */}
         {isDragging && (
-          <div className="absolute inset-0 bg-green-50/95 z-50 flex flex-col items-center justify-center border-4 border-dashed border-green-400 rounded-2xl">
-            <ImageIcon size={56} className="text-green-500 mb-3 animate-bounce" />
-            <p className="text-2xl font-bold text-green-700">Thả ảnh / video vào đây</p>
-            <p className="text-green-600 text-sm mt-1">Hỗ trợ JPG, PNG, GIF, MP4, MOV...</p>
+          <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-bg/95 backdrop-blur-sm">
+            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-accent-subtle animate-float">
+              <ImageIcon size={28} className="text-accent" />
+            </div>
+            <p className="text-lg font-bold text-text-primary">Thả ảnh / video vào đây</p>
+            <p className="mt-1 text-sm text-text-tertiary">JPG, PNG, GIF, MP4, MOV · tối đa 10MB / 100MB</p>
           </div>
         )}
 
-        {/* ── Header ── */}
-        <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/40">
-          <div className="flex items-center space-x-3">
+        {/* ── Header: author + actions ── */}
+        <div className="flex items-center justify-between border-b border-border px-5 py-4">
+          <div className="flex items-center gap-3">
+            {/* Avatar */}
             {user?.avatar ? (
-              <img src={user.avatar} className="w-10 h-10 rounded-full object-cover ring-2 ring-white" alt="" />
+              <img src={user.avatar} className="h-10 w-10 rounded-full border border-border object-cover" alt="" />
             ) : (
-              <div className="w-10 h-10 bg-gradient-to-br from-gray-300 to-gray-400 rounded-full flex items-center justify-center ring-2 ring-white">
-                <span className="text-white font-bold text-lg">{user?.username?.charAt(0).toUpperCase()}</span>
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-accent text-sm font-bold text-white">
+                {user?.username?.charAt(0).toUpperCase()}
               </div>
             )}
             <div>
-              <p className="text-sm font-bold text-gray-900 leading-tight">{user?.username || 'You'}</p>
-              <select
-                value={visibility}
-                onChange={e => setVisibility(e.target.value)}
-                className="text-xs font-semibold text-gray-500 bg-transparent border-none p-0 cursor-pointer focus:ring-0 mt-0.5"
-              >
-                <option value="PUBLIC">🌍 Public</option>
-                <option value="PRIVATE">🔒 Private</option>
-              </select>
+              <p className="text-sm font-semibold text-text-primary leading-tight">{user?.username}</p>
+              <VisibilitySelector value={visibility} onChange={setVisibility} />
             </div>
           </div>
 
+          {/* Post button */}
           <button
             onClick={handleSubmit}
-            disabled={isSubmitting || (!content && mediaFiles.length === 0)}
-            className="bg-[#1a8917] hover:bg-[#156d12] disabled:opacity-40 text-white px-6 py-2 rounded-full font-bold text-sm transition-all shadow active:scale-95 flex items-center gap-2"
+            disabled={isSubmitting || !canPost}
+            className="btn btn-accent px-5 py-2 text-sm"
           >
-            {isSubmitting ? <><Loader2 size={15} className="animate-spin" /> Đang đăng...</> : 'Đăng bài'}
+            {isSubmitting ? (
+              <><Loader2 size={14} className="animate-spin" /> Đang đăng...</>
+            ) : (
+              'Đăng bài'
+            )}
           </button>
         </div>
 
-        {/* ── Editor ── */}
-        <div className="p-6 pb-2">
-          <input
-            type="text"
-            placeholder="Tags (ví dụ: công nghệ, cuộc sống)..."
-            className="w-full text-sm font-medium text-gray-400 placeholder-gray-300 bg-transparent border-none focus:ring-0 px-0 outline-none mb-4"
-            value={tags}
-            onChange={e => setTags(e.target.value)}
-          />
-
+        {/* ── Content area ── */}
+        <div className="px-5 pt-5 pb-3">
           <textarea
-            placeholder="Bạn đang nghĩ gì?"
-            className="w-full text-base sm:text-lg text-gray-800 placeholder-gray-300 border-none focus:ring-0 px-0 outline-none resize-none leading-relaxed min-h-[120px]"
+            ref={textareaRef}
+            placeholder="Bạn đang nghĩ gì? Hãy chia sẻ với mọi người..."
+            className="w-full resize-none border-none bg-transparent text-[16px] leading-relaxed text-text-primary outline-none placeholder-text-tertiary"
+            style={{ minHeight: '140px' }}
             value={content}
             onChange={e => {
               setContent(e.target.value);
@@ -260,44 +346,61 @@ export default function CreatePost() {
             }}
           />
 
-          {/* ── Preview Grid ── */}
+          {/* Media preview */}
           <PreviewGrid previews={previews} onRemove={removeMedia} />
         </div>
 
+        {/* ── Tags row ── */}
+        <div className="mx-5 mb-3 flex items-start gap-2 rounded-lg border border-border-subtle bg-bg-subtle px-3.5 py-2.5">
+          <Tag className="mt-0.5 h-3.5 w-3.5 shrink-0 text-text-tertiary" strokeWidth={2} />
+          <TagInput value={tags} onChange={setTags} />
+        </div>
+
         {/* ── Toolbar ── */}
-        <div className="px-6 py-3 mt-2 bg-gray-50 border-t border-gray-100 flex items-center gap-3">
-          <span className="text-sm font-semibold text-gray-400 mr-auto">Thêm vào bài viết</span>
+        <div className="flex items-center justify-between border-t border-border bg-bg-subtle px-5 py-3">
+          <div className="flex items-center gap-1">
+            <span className="mr-2 text-xs font-semibold text-text-tertiary">Thêm:</span>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              title="Thêm ảnh"
+              className="btn btn-ghost gap-1.5 px-3 py-1.5 text-text-secondary hover:text-accent-text"
+            >
+              <ImageIcon size={17} strokeWidth={2} />
+              <span className="hidden sm:inline text-xs">Ảnh</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              title="Thêm video"
+              className="btn btn-ghost gap-1.5 px-3 py-1.5 text-text-secondary hover:text-accent-text"
+            >
+              <Video size={17} strokeWidth={2} />
+              <span className="hidden sm:inline text-xs">Video</span>
+            </button>
+            <input
+              type="file"
+              multiple
+              hidden
+              ref={fileInputRef}
+              accept="image/*,video/*"
+              onChange={e => addFiles(e.target.files)}
+            />
+          </div>
 
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            title="Thêm ảnh"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full hover:bg-gray-200 text-green-600 transition-colors text-sm font-medium"
-          >
-            <ImageIcon size={20} strokeWidth={2} />
-            Ảnh
-          </button>
-
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            title="Thêm video"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full hover:bg-gray-200 text-blue-600 transition-colors text-sm font-medium"
-          >
-            <Video size={20} strokeWidth={2} />
-            Video
-          </button>
-
-          <input
-            type="file"
-            multiple
-            hidden
-            ref={fileInputRef}
-            accept="image/*,video/*"
-            onChange={e => addFiles(e.target.files)}
-          />
+          {/* Character count */}
+          {charCount > 0 && (
+            <span className={`text-xs font-medium tabular-nums ${charCount > 2000 ? 'text-danger' : 'text-text-tertiary'}`}>
+              {charCount.toLocaleString()}
+            </span>
+          )}
         </div>
       </div>
+
+      {/* Tips */}
+      <p className="mt-4 text-center text-xs text-text-tertiary animate-fade-in-up delay-200">
+        Kéo và thả ảnh / video vào đây · Tối đa 5 tags · Enter hoặc dấu phẩy để thêm tag
+      </p>
     </div>
   );
 }

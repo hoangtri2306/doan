@@ -36,7 +36,7 @@ export default function UsersPage() {
       const res = await getUsers();
       setUsers(res.data || []);
     } catch (error) {
-      showToast('Failed to fetch users', 'error');
+      showToast('Không tải được danh sách người dùng', 'error');
     } finally {
       setLoading(false);
     }
@@ -48,27 +48,27 @@ export default function UsersPage() {
     setActionLoading(id + 'role');
     try {
       await changeRole(id, role);
-      showToast('Role updated successfully');
+      showToast('Cập nhật vai trò thành công');
       fetchUsers();
     } catch {
-      showToast('Failed to change role', 'error');
+      showToast('Không thể thay đổi vai trò', 'error');
     } finally {
       setActionLoading(null);
     }
   };
 
   const handleAction = async (action, id, username) => {
-    const messages = { BAN: `Ban ${username}?`, MUTE: `Mute ${username}?`, RESET: `Reset ${username}'s score?` };
+    const messages = { BAN: `Cấm tài khoản ${username}?`, MUTE: `Tắt tiếng ${username}?`, RESET: `Reset điểm của ${username}?` };
     if (!confirm(messages[action])) return;
     setActionLoading(id + action);
     try {
       if (action === 'BAN') await banUser(id);
       if (action === 'MUTE') await muteUser(id);
       if (action === 'RESET') await resetScore(id);
-      showToast(`User ${action.toLowerCase()}${action === 'RESET' ? ' score reset' : 'ned'} successfully`);
+      showToast(`Thực hiện thành công`);
       fetchUsers();
     } catch {
-      showToast(`Failed to ${action.toLowerCase()} user`, 'error');
+      showToast(`Không thể thực hiện thao tác`, 'error');
     } finally {
       setActionLoading(null);
     }
@@ -96,8 +96,8 @@ export default function UsersPage() {
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-white">User Management</h2>
-          <p className="text-slate-500 text-sm mt-0.5">{users.length} total users registered</p>
+          <h2 className="text-xl font-bold text-white">Quản lý người dùng</h2>
+          <p className="text-slate-500 text-sm mt-0.5">{users.length} người dùng đã đăng ký</p>
         </div>
       </div>
 
@@ -106,18 +106,18 @@ export default function UsersPage() {
           <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
-          <input type="text" placeholder="Search users..." value={search} onChange={e => setSearch(e.target.value)}
+          <input type="text" placeholder="Tìm kiếm người dùng..." value={search} onChange={e => setSearch(e.target.value)}
             className="w-full pl-9 pr-4 py-2.5 rounded-xl text-sm text-white placeholder-slate-500 outline-none"
             style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }} />
         </div>
         <select value={filterRole} onChange={e => setFilterRole(e.target.value)} className="px-4 py-2.5 rounded-xl text-sm text-white outline-none cursor-pointer" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
-          <option value="ALL" style={{ background: '#1a1d2e' }}>All Roles</option>
+          <option value="ALL" style={{ background: '#1a1d2e' }}>Tất cả vai trò</option>
           <option value="USER" style={{ background: '#1a1d2e' }}>USER</option>
           <option value="MODERATOR" style={{ background: '#1a1d2e' }}>MODERATOR</option>
           <option value="ADMIN" style={{ background: '#1a1d2e' }}>ADMIN</option>
         </select>
         <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="px-4 py-2.5 rounded-xl text-sm text-white outline-none cursor-pointer" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
-          <option value="ALL" style={{ background: '#1a1d2e' }}>All Status</option>
+          <option value="ALL" style={{ background: '#1a1d2e' }}>Tất cả trạng thái</option>
           <option value="ACTIVE" style={{ background: '#1a1d2e' }}>ACTIVE</option>
           <option value="MUTED" style={{ background: '#1a1d2e' }}>MUTED</option>
           <option value="BANNED" style={{ background: '#1a1d2e' }}>BANNED</option>
@@ -126,16 +126,16 @@ export default function UsersPage() {
 
       <div className="rounded-2xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
         <div className="grid grid-cols-12 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)' }}>
-          <div className="col-span-5">User</div>
-          <div className="col-span-3 text-center">Status</div>
-          <div className="col-span-2 text-center">Role</div>
-          <div className="col-span-2 text-right">Violation Score</div>
+          <div className="col-span-5">Người dùng</div>
+          <div className="col-span-3 text-center">Trạng thái</div>
+          <div className="col-span-2 text-center">Vai trò</div>
+          <div className="col-span-2 text-right">Số điểm vi phạm</div>
         </div>
 
         {loading ? (
-          <div className="py-20 text-center text-slate-500">Loading users...</div>
+          <div className="py-20 text-center text-slate-500">Đang tải...</div>
         ) : filtered.length === 0 ? (
-          <div className="py-20 text-center text-slate-500">No users found.</div>
+          <div className="py-20 text-center text-slate-500">Không tìm thấy người dùng.</div>
         ) : (
           filtered.map((user, idx) => {
             const roleStyle = ROLE_COLORS[user.role] || ROLE_COLORS.USER;

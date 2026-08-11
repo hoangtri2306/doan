@@ -19,7 +19,7 @@ export default function InteractionBar({ targetId, targetModel, initialLikes = 0
   const router = useRouter();
 
   const handleAuthRedirect = (action) => {
-    toast.error(`Please login to ${action}`);
+    toast.error(`Vui lòng đăng nhập để thực hiện thao tác này`);
     router.push('/login');
   };
 
@@ -42,7 +42,7 @@ export default function InteractionBar({ targetId, targetModel, initialLikes = 0
       const newStatus = !bookmarked;
       setBookmarked(newStatus);
       setBookmarksCount(prev => newStatus ? prev + 1 : Math.max(0, prev - 1));
-      
+
       if (newStatus) {
         await bookmarkPost(targetId);
       } else {
@@ -71,7 +71,7 @@ export default function InteractionBar({ targetId, targetModel, initialLikes = 0
         setReposted(true);
       }
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Error reposting');
+      toast.error(err.response?.data?.message || 'Lỗi khi chia sẻ bài viết');
     }
   };
 
@@ -82,50 +82,50 @@ export default function InteractionBar({ targetId, targetModel, initialLikes = 0
 
   return (
     <>
-      <div className="flex items-center justify-between py-4 border-y border-neutral-100 my-6">
+      <div className="flex items-center justify-between py-4 border-y border-border my-6">
         <div className="flex items-center space-x-6">
-          <button onClick={handleLike} className={`flex items-center space-x-2 transition-colors ${liked ? 'text-red-500' : 'text-neutral-500 hover:text-red-500'}`}>
-            <Heart className={`w-5 h-5 ${liked ? 'fill-red-500' : ''}`} strokeWidth={1.8} />
-            <span className="text-sm font-bold">{likesCount}</span>
+          <button onClick={handleLike} className={`focus-ring flex items-center space-x-2 transition-colors ${liked ? 'text-danger' : 'text-text-secondary hover:text-danger'}`}>
+            <Heart className={`w-5 h-5 ${liked ? 'fill-danger' : ''}`} strokeWidth={1.8} />
+            <span className="text-sm font-semibold tabular-nums">{likesCount}</span>
           </button>
-          <button onClick={handleBookmark} className={`flex items-center space-x-2 transition-colors ${bookmarked ? 'text-neutral-900' : 'text-neutral-500 hover:text-neutral-900'}`}>
-            <Bookmark className={`w-5 h-5 ${bookmarked ? 'fill-neutral-900' : ''}`} strokeWidth={1.8} />
-            <span className="text-sm font-bold">{bookmarksCount}</span>
+          <button onClick={handleBookmark} className={`focus-ring flex items-center space-x-2 transition-colors ${bookmarked ? 'text-text-primary' : 'text-text-secondary hover:text-text-primary'}`}>
+            <Bookmark className={`w-5 h-5 ${bookmarked ? 'fill-text-primary' : ''}`} strokeWidth={1.8} />
+            <span className="text-sm font-semibold tabular-nums">{bookmarksCount}</span>
           </button>
-          
+
           {targetModel === 'Post' && (
             <div className="relative">
-              <button 
-                onClick={() => setShowRepostMenu(!showRepostMenu)} 
-                className={`flex items-center space-x-2 transition-colors ${reposted ? 'text-green-600' : 'text-neutral-500 hover:text-green-600'}`}
+              <button
+                onClick={() => setShowRepostMenu(!showRepostMenu)}
+                className={`focus-ring flex items-center space-x-2 transition-colors ${reposted ? 'text-accent-text' : 'text-text-secondary hover:text-accent-text'}`}
               >
                 <Repeat className={`w-5 h-5`} strokeWidth={1.8} />
-                <span className="text-sm font-bold">{sharesCount > 0 ? sharesCount : ''}</span>
+                <span className="text-sm font-semibold tabular-nums">{sharesCount > 0 ? sharesCount : ''}</span>
               </button>
-              
+
               {showRepostMenu && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setShowRepostMenu(false)}></div>
-                  <div className="absolute bottom-full left-0 mb-2 w-48 bg-white rounded-xl shadow-xl border border-neutral-100 overflow-hidden py-1 z-50">
-                    <button 
+                  <div className="card elevated-md animate-scale-in absolute bottom-full left-0 mb-2 w-48 overflow-hidden py-1 z-50">
+                    <button
                       onClick={(e) => {
                         setShowRepostMenu(false);
                         handleRepost(e);
                       }}
-                      className="w-full px-4 py-3 text-left flex items-center space-x-3 hover:bg-neutral-50 text-sm font-medium text-neutral-700 transition-colors"
+                      className="w-full px-4 py-3 text-left flex items-center space-x-3 hover:bg-surface-hover text-sm font-medium text-text-primary transition-colors"
                     >
-                      {reposted ? <Check className="w-4 h-4 text-green-600" /> : <Repeat className="w-4 h-4" />}
-                      <span className={reposted ? "text-green-600 font-bold" : "font-semibold"}>{reposted ? 'Unrepost' : 'Repost'}</span>
+                      {reposted ? <Check className="w-4 h-4 text-accent-text" /> : <Repeat className="w-4 h-4" />}
+                      <span className={reposted ? "text-accent-text font-semibold" : "font-semibold"}>{reposted ? 'Bỏ chia sẻ' : 'Chia sẻ'}</span>
                     </button>
-                    <button 
+                    <button
                       onClick={() => {
                         setShowRepostMenu(false);
-                        toast('Quote feature is coming soon!');
+                        toast('Tính năng trích dẫn sắp ra mắt!');
                       }}
-                      className="w-full px-4 py-3 text-left flex items-center space-x-3 hover:bg-neutral-50 text-sm font-medium text-neutral-700 transition-colors"
+                      className="w-full px-4 py-3 text-left flex items-center space-x-3 hover:bg-surface-hover text-sm font-medium text-text-primary transition-colors"
                     >
                       <Quote className="w-4 h-4" />
-                      <span className="font-semibold">Quote Repost</span>
+                      <span className="font-semibold">Trích dẫn</span>
                     </button>
                   </div>
                 </>
@@ -133,17 +133,17 @@ export default function InteractionBar({ targetId, targetModel, initialLikes = 0
             </div>
           )}
         </div>
-        <button onClick={handleReport} className="flex items-center space-x-2 text-neutral-400 hover:text-red-500 transition-colors group">
-          <AlertTriangle className="w-4 h-4 group-hover:fill-red-50" />
-          <span className="text-xs font-bold uppercase tracking-wider">Report</span>
+        <button onClick={handleReport} className="focus-ring flex items-center space-x-2 text-text-secondary hover:text-danger transition-colors group">
+          <AlertTriangle className="w-4 h-4" />
+          <span className="text-xs font-semibold uppercase tracking-wider">Báo cáo</span>
         </button>
       </div>
 
-      <ReportModal 
-        isOpen={isReportModalOpen} 
-        onClose={() => setIsReportModalOpen(false)} 
-        targetId={targetId} 
-        targetModel={targetModel} 
+      <ReportModal
+        isOpen={isReportModalOpen}
+        onClose={() => setIsReportModalOpen(false)}
+        targetId={targetId}
+        targetModel={targetModel}
       />
     </>
   );

@@ -42,10 +42,10 @@ export default function EditPost() {
     }
   }, [params.slug, router]);
 
-  if (loading || !isAuthenticated || fetching) return <div className="text-center py-20">Loading...</div>;
+  if (loading || !isAuthenticated || fetching) return <div className="text-center py-20 text-text-secondary">Loading...</div>;
 
   if (post && user?.id !== post.author?._id) {
-    return <div className="text-center py-20 text-red-500">You are not authorized to edit this post.</div>;
+    return <div className="text-center py-20 text-danger">You are not authorized to edit this post.</div>;
   }
 
   const handleSubmit = async (e) => {
@@ -66,12 +66,12 @@ export default function EditPost() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto">
+    <div className="max-w-3xl mx-auto py-10 px-4 sm:px-0">
       <div className="flex items-center justify-between mb-8">
-        <h1 className="text-3xl font-bold font-serif text-gray-900">Edit Post</h1>
-        <button 
+        <h1 className="text-2xl font-semibold tracking-tight text-text-primary">Edit Post</h1>
+        <button
           onClick={handleSubmit}
-          className="px-4 py-2 bg-[#1a8917] text-white rounded-full font-medium hover:bg-[#156d12] transition-colors"
+          className="btn btn-primary px-4 py-2"
         >
           Save Changes
         </button>
@@ -81,14 +81,14 @@ export default function EditPost() {
         <input
           type="text"
           placeholder="Tags (comma separated)..."
-          className="w-full text-lg font-medium text-gray-700 placeholder-gray-400 bg-transparent border-b border-gray-200 focus:border-[#1a8917] focus:outline-none pb-2 transition-colors"
+          className="input-field"
           value={tags}
           onChange={(e) => setTags(e.target.value)}
         />
         <textarea
           placeholder="Tell your story..."
           rows="15"
-          className="w-full text-xl text-gray-800 placeholder-gray-400 bg-transparent border-none focus:ring-0 focus:outline-none resize-none leading-relaxed"
+          className="input-field text-base leading-relaxed resize-none min-h-[300px]"
           value={content}
           onChange={(e) => setContent(e.target.value)}
         />
