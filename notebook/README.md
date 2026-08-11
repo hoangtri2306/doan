@@ -14,15 +14,15 @@ Thư mục này chứa toàn bộ các notebook và tập dữ liệu (dataset) 
 | `phobert.ipynb` | Fine-tune mô hình **PhoBERT** (`vinai/phobert-base-v2`) — dùng để benchmark so sánh. |
 | `infoxlm.ipynb` | Fine-tune mô hình **InfoXLM** (`microsoft/infoxlm-base`) — dùng để benchmark so sánh. |
 | `bert.ipynb` | Fine-tune mô hình **mBERT** (`bert-base-multilingual-cased`) — baseline cổ điển để so sánh. |
-| `spam.ipynb` | Tiền xử lý dataset kiểm duyệt text: chuẩn hóa 7 nguồn dữ liệu gốc, làm sạch, khử trùng lặp và upsampling. |
-| `bìnhthuong.ipynb` | Sinh 10.000 mẫu bình luận bình thường (Ham) tiếng Việt bằng LLM local (Ollama + Qwen 2.5:7b) kết hợp deduplication & mutation. |
+| `ham.ipynb` | Sinh 10.000 mẫu bình luận bình thường (Ham) tiếng Việt bằng LLM local (Ollama + Qwen 2.5:7b) kết hợp khử trùng lặp ngữ nghĩa (`paraphrase-multilingual-MiniLM-L12-v2`). |
+| `spam.ipynb` | Pipeline sinh và tổng hợp dữ liệu spam/ham tiếng Việt với các cơ chế teencode, typo mutation, khử trùng lặp và bỏ qua AI-boilerplate. |
 
 ### 📊 Tập dữ liệu (.csv)
 
 | Tệp CSV | Dung lượng | Số lượng mẫu | Mô tả |
 |---|---|---|---|
-| `vietnamese_ham_dataset.csv` | ~3.15 MB | ~10.000 mẫu | Dữ liệu bình luận bình thường (clean/ham) tiếng Việt sinh bởi Ollama/Qwen. |
-| `vietnamese_spam_dataset_kaggle.csv` | ~3.22 MB | ~39.000+ mẫu | Dữ liệu spam và toxic tiếng Việt tổng hợp và chuẩn hóa cho Kaggle. |
+| `vietnamese_ham_dataset.csv` | ~3.15 MB | ~10.000 mẫu | Dữ liệu bình luận bình thường (clean/ham) tiếng Việt sinh bởi `ham.ipynb`. |
+| `vietnamese_spam_dataset_kaggle.csv` | ~3.22 MB | ~39.000+ mẫu | Dữ liệu spam và toxic tiếng Việt tổng hợp và chuẩn hóa cho Kaggle từ `spam.ipynb`. |
 
 ---
 
@@ -49,30 +49,29 @@ Các notebook so sánh hiệu năng của các kiến trúc NLP khác nhau trên
 
 ---
 
-### 2.3 `spam.ipynb` — Chuẩn bị & Cân bằng Dataset
+### 2.3 `ham.ipynb` — Sinh Dữ liệu Ham bằng LLM Local
 
-- Nạp và chuẩn hóa 7 tập dữ liệu gốc (ViCTSD, ViHSD, ViSpamReviews, SyntheticHam, SyntheticSpam, Jigsaw Toxic...).
-- Tiền xử lý chữ viết (Unicode NFKC, xóa ký tự ẩn, lọc độ dài).
-- Upsample các tập dữ liệu thiểu số (Spam/Toxic).
-- Tạo dữ liệu đa nhãn Synthetic Toxic+Spam bằng cách ghép chuỗi toxic với các template CTA spam.
-- Output: `moderation_dataset_v2.csv`.
+- **Công cụ**: Ollama + model `Qwen 2.5:7b`.
+- **Phương pháp**: Sinh dữ liệu theo các nhóm chủ đề giao tiếp tự nhiên và persona người dùng.
+- **Khử trùng lặp**: Semantic Deduplication bằng `paraphrase-multilingual-MiniLM-L12-v2` (threshold cosine 0.87).
+- Output: `vietnamese_ham_dataset.csv` (~10.000 câu bình luận sạch).
 
 ---
 
-### 2.4 `bìnhthuong.ipynb` — Sinh Dữ liệu Ham bằng LLM Local
+### 2.4 `spam.ipynb` — Sinh & Chuẩn bị Dữ liệu Spam / Combined Dataset
 
 - **Công cụ**: Ollama + model `Qwen 2.5:7b`.
-- **Phương pháp**: Sinh dữ liệu theo 4 nhóm chủ đề và 7 persona người dùng.
-- **Khử trùng lặp**: Semantic Deduplication bằng `paraphrase-multilingual-MiniLM-L12-v2` (threshold cosine 0.87).
-- Output: `vietnamese_ham_dataset.csv`.
+- **Phương pháp**: Sinh và tổng hợp dữ liệu spam/toxic tiếng Việt, giả lập teencode, lỗi gõ phím (typo mutation), loại bỏ câu mẫu AI cứng nhắc.
+- **Khử trùng lặp**: Vectorized Semantic Deduplication (`paraphrase-multilingual-MiniLM-L12-v2`).
+- Output: `vietnamese_dataset_balanced.csv` / `vietnamese_spam_dataset_kaggle.csv`.
 
 ---
 
 ## 3. Thứ tự Chạy Pipeline Tái tạo (Replication Order)
 
 ```
-1. bìnhthuong.ipynb    → Sinh dữ liệu bình thường (xuất vietnamese_ham_dataset.csv)
-2. spam.ipynb          → Chuẩn hóa & hợp nhất các nguồn dữ liệu toxic/spam (xuất moderation_dataset_v2.csv)
+1. ham.ipynb           → Sinh dữ liệu bình thường (xuất vietnamese_ham_dataset.csv)
+2. spam.ipynb          → Sinh & chuẩn hóa tập dữ liệu spam (xuất vietnamese_spam_dataset_kaggle.csv)
 3. xlm-roberta-.ipynb → Huấn luyện & đánh giá XLM-RoBERTa chính (xuất final_moderation_model_v2)
 
 (Các notebook so sánh benchmark):
