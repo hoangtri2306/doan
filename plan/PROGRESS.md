@@ -65,6 +65,15 @@
   - **P2 (13/16):** helmet, length limits, error middleware, indexes, appeal ownership, banned login, moderation checks, ghost interaction, io emit, v.v.
 - ✅ Validate: `node --check` toàn bộ backend pass, `py_compile` AI pass, ESLint 0 error mới (chỉ warning pre-existing), test sanitize-html thực tế (strip script + onerror).
 - 🔄 **BUG-017 partial:** song song hóa count query; phần aggregate batch để DEFERRED.
+- ✅ **Code review (deepseek-flash) đã chạy** → fix tiếp các vấn đề review tìm ra (commit 3):
+  - Socket stale token: đổi `auth` sang dạng hàm `(cb) => cb({ token: getToken() })` ở cả 3 nơi (Navbar, useSocket, messages/[id]) — messages/[id] trước đó tạo socket KHÔNG token → sẽ vỡ; đã sửa.
+  - Repost title > maxlength 255 → slice(0,255).
+  - Tách `interactionLimiter` (60/phút) và `messageLimiter` (60/phút) khỏi `writeLimiter` dùng chung.
+  - Thêm `app.set('trust proxy')` theo env `TRUST_PROXY` (deploy sau proxy).
+  - Chặn SVG giờ trả 400 (err.status) thay vì 500.
+  - `sanitize.js`: scheme `data:` chỉ còn cho img (allowedSchemesByTag).
+  - `api.js`: skip refresh cho các endpoint auth (login/register/refresh) — giữ thông báo lỗi login.
+  - `useSocket.js`: reset socket state khi cleanup.
 - ⏳ Còn lại 15 DEFERRED (P2 nâng cao + P3) — xem bảng trên.
 - **Bước tiếp theo cho session 2:** đọc CLAUDE.md → làm các bug DEFERRED ưu tiên: BUG-018 (gộp auth), BUG-022 (comment tree), BUG-024 (conversation race), BUG-027 (checkStatus cache), BUG-017 (aggregate), rồi tới P3.
 
