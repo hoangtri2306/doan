@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react';
 import { getUnreadCount } from '../services/message.service';
 import { io } from 'socket.io-client';
 import NotificationBell from './NotificationBell';
+import { getToken } from '../utils/token';
 
 /* ── Brand logo ── */
 function InkwellLogo() {
@@ -54,7 +55,9 @@ export default function Navbar() {
       };
       fetchUnread();
 
-      const socket = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5000');
+      const socket = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5000', {
+        auth: { token: getToken() } // BUG-003: socket cần xác thực JWT
+      });
       socket.emit('join_user_room', user.id);
       socket.on('new_message', () => setUnreadMessages(prev => prev + 1));
 

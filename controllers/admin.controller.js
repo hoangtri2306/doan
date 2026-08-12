@@ -139,7 +139,8 @@ class AdminController {
         if (report.target_model === 'Post') {
           await Post.findByIdAndUpdate(report.target_id, { visibility: 'HIDDEN' });
         } else if (report.target_model === 'Comment') {
-          await Comment.findByIdAndDelete(report.target_id);
+          // BUG-025: ẩn thay vì xóa vĩnh viễn (có thể khôi phục, không mất dữ liệu)
+          await Comment.findByIdAndUpdate(report.target_id, { is_hidden: true });
         }
       } else if (action === 'MARK_SENSITIVE') {
         if (report.target_model === 'Post') {
@@ -148,6 +149,16 @@ class AdminController {
           await Comment.findByIdAndUpdate(report.target_id, { is_sensitive: true });
         }
       }
+
+      // Ghi audit log cho hành động kiểm duyệt
+      const ModerationLog = require('../models/ModerationLog');
+      await ModerationLog.create({
+        moderator_id: req.user.id,
+        target_id: report.target_id,
+        target_model: report.target_model,
+        action: action === 'HIDE' ? 'HIDE' : 'WARN',
+        reason: `Resolved report ${report._id} with action ${action}`
+      });
 
       report.status = 'RESOLVED';
       await report.save();

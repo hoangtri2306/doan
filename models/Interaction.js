@@ -12,5 +12,7 @@ const interactionSchema = new mongoose.Schema(
 
 // Unique index to prevent duplicate interactions
 interactionSchema.index({ user_id: 1, target_id: 1, type: 1 }, { unique: true });
+// BUG-026: countInteractions theo target_id + type
+interactionSchema.index({ target_id: 1, type: 1 });
 
 module.exports = mongoose.model('Interaction', interactionSchema);

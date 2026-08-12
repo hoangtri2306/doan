@@ -1,10 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const moderationController = require('../controllers/moderation.controller');
-const { authenticate, authorize } = require('../middlewares/auth.middleware');
+const { authenticate, authorize, checkStatus } = require('../middlewares/auth.middleware');
+const { writeLimiter } = require('../middlewares/rateLimit.middleware'); // BUG-011
 
-router.post('/report', authenticate, moderationController.reportContent);
-router.post('/log', authenticate, authorize(['MODERATOR', 'ADMIN']), moderationController.logAction);
+// BUG-030: thêm checkStatus
+router.post('/report', authenticate, checkStatus, writeLimiter, moderationController.reportContent);
+router.post('/log', authenticate, checkStatus, authorize(['MODERATOR', 'ADMIN']), writeLimiter, moderationController.logAction);
 
 router.get('/queue', authenticate, authorize(['MODERATOR', 'ADMIN']), moderationController.getQueue);
 router.put('/approve/:id', authenticate, authorize(['MODERATOR', 'ADMIN']), moderationController.approveItem);

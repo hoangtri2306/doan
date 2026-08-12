@@ -1,3 +1,4 @@
+// BUG-012: refresh token KHÔNG còn được lưu ở đây — nó nằm trong httpOnly cookie.
 export const getToken = () => {
   if (typeof window !== 'undefined') {
     return localStorage.getItem('accessToken');
@@ -11,22 +12,9 @@ export const setToken = (token) => {
   }
 };
 
-export const getRefreshToken = () => {
-  if (typeof window !== 'undefined') {
-    return localStorage.getItem('refreshToken');
-  }
-  return null;
-};
-
-export const setRefreshToken = (token) => {
-  if (typeof window !== 'undefined') {
-    localStorage.setItem('refreshToken', token);
-  }
-};
-
 export const removeToken = () => {
   if (typeof window !== 'undefined') {
     localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('refreshToken'); // dọn key cũ nếu còn sót
   }
 };

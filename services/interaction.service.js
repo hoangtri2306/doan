@@ -2,7 +2,30 @@ const interactionRepository = require('../repositories/interaction.repo');
 const notificationService = require('./notification.service');
 
 class InteractionService {
+  // BUG-028: kiểm tra target tồn tại + chặn type REPOST qua endpoint này
+  async _validateTarget(target_id, target_model) {
+    const Post = require('../models/Post');
+    const Comment = require('../models/Comment');
+    if (target_model === 'Post') {
+      const p = await Post.findById(target_id);
+      if (!p) throw new Error('Post not found');
+    } else if (target_model === 'Comment') {
+      const c = await Comment.findById(target_id);
+      if (!c) throw new Error('Comment not found');
+    } else {
+      throw new Error('Invalid target model');
+    }
+  }
+
   async interact(user_id, target_id, target_model, type) {
+    if (type === 'REPOST') {
+      throw new Error('Use the repost endpoint instead');
+    }
+    if (!['LIKE', 'BOOKMARK'].includes(type)) {
+      throw new Error('Invalid interaction type');
+    }
+    await this._validateTarget(target_id, target_model);
+
     const existing = await interactionRepository.findInteraction(user_id, target_id, type);
     
     if (existing) {
@@ -43,6 +66,7 @@ class InteractionService {
   }
 
   async addBookmark(user_id, post_id) {
+    await this._validateTarget(post_id, 'Post');
     const existing = await interactionRepository.findInteraction(user_id, post_id, 'BOOKMARK');
     if (existing) return { success: true, action: 'already_saved' };
 

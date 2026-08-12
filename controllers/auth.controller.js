@@ -1,12 +1,26 @@
 const authService = require('../services/auth.service');
 
 class AuthController {
+  // BUG-012: refresh token chỉ qua httpOnly cookie (sameSite lax), không trả trong body
+  _setRefreshCookie(res, token) {
+    res.cookie('refreshToken', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+    });
+  }
+
   async register(req, res) {
     try {
-      const user = await authService.register(req.body);
+      const { user, tokens } = await authService.register(req.body);
+      this._setRefreshCookie(res, tokens.refreshToken);
       res.status(201).json({
         success: true,
-        data: user,
+        data: {
+          user,
+          accessToken: tokens.accessToken
+        },
         message: 'User registered successfully'
       });
     } catch (error) {
@@ -31,10 +45,14 @@ class AuthController {
       }
 
       const data = await authService.login(email, password);
+      this._setRefreshCookie(res, data.refreshToken);
       
       res.status(200).json({
         success: true,
-        data,
+        data: {
+          user: data.user,
+          accessToken: data.accessToken
+        },
         message: 'Login successful'
       });
     } catch (error) {
@@ -48,11 +66,18 @@ class AuthController {
 
   async refresh(req, res) {
     try {
-      const { refreshToken } = req.body;
+      // Ưu tiên cookie; giữ body làm fallback cho client cũ (sẽ bỏ sau khi chuyển đổi xong)
+      const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
+      if (!refreshToken) {
+        return res.status(401).json({ success: false, message: 'Refresh token required' });
+      }
+
       const data = await authService.refreshToken(refreshToken);
+      this._setRefreshCookie(res, data.refreshToken); // rotation: set cookie mới
+
       res.status(200).json({
         success: true,
-        data,
+        data: { accessToken: data.accessToken },
         message: 'Token refreshed successfully'
       });
     } catch (error) {

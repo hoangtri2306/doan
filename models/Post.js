@@ -3,10 +3,11 @@ const mongoose = require('mongoose');
 const postSchema = new mongoose.Schema(
   {
     author: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    title: { type: String, default: '' },
+    // BUG-019: giới hạn độ dài tránh DB bloat / DoS qua content khổng lồ
+    title: { type: String, default: '', maxlength: 255 },
     slug: { type: String, required: true, unique: true },
     content_json: { type: Object, required: true },
-    content_html: { type: String, required: true },
+    content_html: { type: String, required: true, maxlength: 200000 },
     status: { type: String, enum: ['DRAFT', 'PUBLISHED'], default: 'DRAFT' },
     visibility: { type: String, enum: ['PUBLIC', 'PRIVATE', 'HIDDEN'], default: 'PUBLIC' },
     reading_time: { type: Number, default: 0 },
@@ -30,6 +31,9 @@ const postSchema = new mongoose.Schema(
 
 // Index tags for fast filtering (slug unique index is defined inline above)
 postSchema.index({ tags: 1 });
+// BUG-026: index cho query feed/profile
+postSchema.index({ author: 1, createdAt: -1 });
+postSchema.index({ visibility: 1, createdAt: -1 });
 
 module.exports = mongoose.model('Post', postSchema);
 

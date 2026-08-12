@@ -6,7 +6,7 @@ const commentSchema = new mongoose.Schema(
     author: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     parent_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Comment', default: null },
     depth: { type: Number, default: 0 },
-    content: { type: String, required: true },
+    content: { type: String, required: true, maxlength: 10000 }, // BUG-019
     
     // AI Moderation Fields
     spam_score: { type: Number, default: 0 },
@@ -20,5 +20,6 @@ const commentSchema = new mongoose.Schema(
 
 // Indexing for faster lookups by post
 commentSchema.index({ post_id: 1 });
+commentSchema.index({ post_id: 1, createdAt: 1 }); // BUG-026
 
 module.exports = mongoose.model('Comment', commentSchema);

@@ -1,12 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const notificationController = require('../controllers/notification.controller');
-const { authenticate } = require('../middlewares/auth.middleware');
+const { authenticate, checkStatus } = require('../middlewares/auth.middleware');
 
-router.get('/', authenticate, notificationController.getNotifications);
-router.patch('/read-all', authenticate, notificationController.markAllAsRead);
-router.patch('/:id/read', authenticate, notificationController.markAsRead);
-router.put('/:id/read', authenticate, notificationController.markAsRead); // keep for backward compatibility
-router.delete('/:id', authenticate, notificationController.delete);
+// BUG-030: thêm checkStatus để chặn user BANNED
+router.get('/', authenticate, checkStatus, notificationController.getNotifications);
+router.patch('/read-all', authenticate, checkStatus, notificationController.markAllAsRead);
+router.patch('/:id/read', authenticate, checkStatus, notificationController.markAsRead);
+router.put('/:id/read', authenticate, checkStatus, notificationController.markAsRead); // keep for backward compatibility
+router.delete('/:id', authenticate, checkStatus, notificationController.delete);
 
 module.exports = router;

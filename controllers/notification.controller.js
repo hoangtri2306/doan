@@ -18,7 +18,11 @@ class NotificationController {
 
   async markAsRead(req, res, next) {
     try {
-      const notification = await notificationService.markAsRead(req.params.id);
+      // BUG-008: chỉ đánh dấu thông báo của chính mình
+      const notification = await notificationService.markAsRead(req.params.id, req.user.id);
+      if (!notification) {
+        return res.status(404).json({ success: false, message: 'Notification not found', data: null });
+      }
       res.status(200).json({
         success: true,
         message: 'Notification marked as read',
@@ -44,7 +48,11 @@ class NotificationController {
 
   async delete(req, res, next) {
     try {
-      await notificationService.deleteNotification(req.params.id);
+      // BUG-008: chỉ xóa thông báo của chính mình
+      const deleted = await notificationService.deleteNotification(req.params.id, req.user.id);
+      if (!deleted) {
+        return res.status(404).json({ success: false, message: 'Notification not found', data: null });
+      }
       res.status(200).json({
         success: true,
         message: 'Notification deleted successfully',

@@ -7,6 +7,25 @@ class AppealService {
   async createAppeal(user_id, data) {
     const { target_id, target_model, ai_label, ai_spam_score, ai_toxicity_score, reason } = data;
 
+    // BUG-023: chỉ chủ sở hữu của nội dung mới được kháng cáo
+    if (target_model === 'Post') {
+      const Post = require('../models/Post');
+      const post = await Post.findById(target_id).select('author');
+      if (!post) throw new Error('Nội dung không tồn tại.');
+      if (post.author.toString() !== user_id.toString()) {
+        throw new Error('Bạn không thể kháng cáo nội dung của người khác.');
+      }
+    } else if (target_model === 'Comment') {
+      const Comment = require('../models/Comment');
+      const comment = await Comment.findById(target_id).select('author');
+      if (!comment) throw new Error('Nội dung không tồn tại.');
+      if (comment.author.toString() !== user_id.toString()) {
+        throw new Error('Bạn không thể kháng cáo nội dung của người khác.');
+      }
+    } else {
+      throw new Error('Loại nội dung không hợp lệ.');
+    }
+
     // Kiểm tra đã kháng cáo chưa
     const existing = await appealRepository.findExisting(user_id, target_id);
     if (existing) {

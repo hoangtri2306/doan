@@ -1,9 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const reportController = require('../controllers/report.controller');
-const { authenticate, authorize } = require('../middlewares/auth.middleware');
+const { authenticate, authorize, checkStatus } = require('../middlewares/auth.middleware');
+const { writeLimiter } = require('../middlewares/rateLimit.middleware'); // BUG-011
 
-router.post('/', authenticate, reportController.createReport);
+// BUG-030: thêm checkStatus
+router.post('/', authenticate, checkStatus, writeLimiter, reportController.createReport);
 
 // Admin routes
 router.get('/', authenticate, authorize(['ADMIN']), reportController.listReports);

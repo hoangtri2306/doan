@@ -71,16 +71,17 @@ class NotificationService {
     return notificationRepository.findByRecipientId(user_id, skip, limit);
   }
 
-  async markAsRead(notification_id) {
-    return notificationRepository.markAsRead(notification_id);
+  // BUG-008: truyền user_id để chống IDOR
+  async markAsRead(notification_id, user_id) {
+    return notificationRepository.markAsRead(notification_id, user_id);
   }
 
   async markAllAsRead(user_id) {
     return notificationRepository.markAllAsRead(user_id);
   }
 
-  async deleteNotification(notification_id) {
-    return notificationRepository.delete(notification_id);
+  async deleteNotification(notification_id, user_id) {
+    return notificationRepository.delete(notification_id, user_id);
   }
 }
 

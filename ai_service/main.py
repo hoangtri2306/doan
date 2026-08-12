@@ -32,6 +32,9 @@ PORT = int(os.environ.get("AI_PORT", 8000))
 SPAM_THRESHOLD = 0.5    # LABEL_1 (L1)
 TOXIC_THRESHOLD = 0.5   # LABEL_0 (L0)
 
+# BUG-016: giới hạn độ dài text tránh DoS (model chỉ nhận 512 tokens, phần dư vô ích)
+MAX_TEXT_LENGTH = 10000
+
 # ── App ───────────────────────────────────────────────────────────────────────
 app = FastAPI(
     title="Content Moderation AI Service",
@@ -119,6 +122,10 @@ async def analyze(req: AnalyzeRequest):
             label="NORMAL",
             raw_scores={"TOXIC": 0.0, "SPAM": 0.0}
         )
+
+    # BUG-016: cắt ngắn text quá dài trước khi tokenize
+    if len(text) > MAX_TEXT_LENGTH:
+        text = text[:MAX_TEXT_LENGTH]
 
     # Tokenize (tối đa 512 tokens)
     inputs = tokenizer(

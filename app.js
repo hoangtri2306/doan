@@ -4,6 +4,8 @@ const path = require('path');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const morgan = require('morgan');
+const cookieParser = require('cookie-parser');
+const helmet = require('helmet');
 
 const { errorMiddleware } = require('./middlewares/error.middleware');
 const routes = require('./routes');
@@ -11,12 +13,17 @@ const routes = require('./routes');
 const app = express();
 
 // Middlewares
+// BUG-020: security headers (tắt CSP để không vỡ inline styles của frontend hiện tại)
+app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors({
   origin: process.env.CLIENT_URL || 'http://localhost:3000',
   credentials: true
 }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// BUG-012: cần cookie-parser để đọc httpOnly refreshToken cookie
+app.use(cookieParser());
+// BUG-019: nâng giới hạn JSON body (post dài có content_html lớn qua update)
+app.use(express.json({ limit: '5mb' }));
+app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 app.use(morgan('dev'));
 
 // Serve static files from uploads folder

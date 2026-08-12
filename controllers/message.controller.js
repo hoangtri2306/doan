@@ -13,6 +13,15 @@ class MessageController {
   async getOrCreateConversation(req, res, next) {
     try {
       const { recipientId } = req.body;
+      // BUG-039: chặn nhắn tin với chính mình và với user không tồn tại
+      if (!recipientId || recipientId.toString() === req.user.id.toString()) {
+        return res.status(400).json({ success: false, message: 'Không thể tạo hội thoại với chính mình' });
+      }
+      const User = require('../models/User');
+      const recipient = await User.findById(recipientId).select('_id');
+      if (!recipient) {
+        return res.status(404).json({ success: false, message: 'Người dùng không tồn tại' });
+      }
       const conversationRepo = require('../repositories/conversation.repo');
       const conversation = await conversationRepo.findOrCreate([req.user.id, recipientId]);
       res.status(200).json({ success: true, data: conversation });
@@ -38,7 +47,15 @@ class MessageController {
       
       if (req.files && req.files.length > 0) {
         const cloudinaryService = require('../services/cloudinary.service');
-        const uploadPromises = req.files.map(file => cloudinaryService.uploadFile(file));
+        // BUG-014: cloudinary.service chỉ export uploadToCloudinary (không có uploadFile)
+        const uploadPromises = req.files.map(file => {
+          const isVideo = file.mimetype.startsWith('video/');
+          return cloudinaryService.uploadToCloudinary(file.buffer, 'messages_media', isVideo ? 'video' : 'image')
+            .then(result => ({
+              url: result.secure_url,
+              type: isVideo ? 'VIDEO' : 'IMAGE'
+            }));
+        });
         media = await Promise.all(uploadPromises);
       }
 
@@ -73,7 +90,7 @@ class MessageController {
   async deleteConversation(req, res, next) {
     try {
       const { conversationId } = req.params;
-      await messageService.deleteConversation(conversationId);
+      await messageService.deleteConversation(conversationId, req.user.id); // BUG-004
       res.status(200).json({ success: true, message: 'Conversation deleted successfully' });
     } catch (error) {
       next(error);

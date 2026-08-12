@@ -93,7 +93,17 @@ class UserService {
     const updateData = {};
     if (data.avatar !== undefined) updateData.avatar = data.avatar;
     if (data.bio !== undefined) updateData.bio = data.bio;
-    if (data.username !== undefined) updateData.username = data.username;
+    if (data.username !== undefined) {
+      // BUG-036: validate username trước khi lưu (tránh rỗng / quá dài / ký tự đặc biệt)
+      const username = String(data.username).trim();
+      if (username.length < 3 || username.length > 30) {
+        throw new Error('Username phải từ 3 đến 30 ký tự');
+      }
+      if (!/^[a-zA-Z0-9_.-]+$/.test(username)) {
+        throw new Error('Username chỉ được chứa chữ, số, dấu chấm, gạch dưới, gạch ngang');
+      }
+      updateData.username = username;
+    }
     
     return userRepository.update(user_id, updateData);
   }

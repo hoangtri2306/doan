@@ -40,9 +40,18 @@ class MessageService {
     return messageRepo.findByConversation(conversationId);
   }
 
-  async deleteConversation(conversationId) {
+  async deleteConversation(conversationId, userId) {
     const Message = require('../models/Message');
     const Conversation = require('../models/Conversation');
+
+    // BUG-004: chỉ chủ hội thoại mới được xóa
+    const conversation = await Conversation.findById(conversationId);
+    if (!conversation) throw new Error('Conversation not found');
+    const isParticipant = conversation.participants.some(
+      p => p.toString() === userId.toString()
+    );
+    if (!isParticipant) throw new Error('Unauthorized');
+
     await Message.deleteMany({ conversation_id: conversationId });
     await Conversation.findByIdAndDelete(conversationId);
     return true;
@@ -50,8 +59,17 @@ class MessageService {
 
   async reactToMessage(messageId, userId, emoji) {
     const Message = require('../models/Message');
+    const Conversation = require('../models/Conversation');
     const message = await Message.findById(messageId);
     if (!message) throw new Error('Message not found');
+
+    // BUG-009: chỉ participant của hội thoại mới được react
+    const conversation = await Conversation.findById(message.conversation_id);
+    if (!conversation) throw new Error('Conversation not found');
+    const isParticipant = conversation.participants.some(
+      p => p.toString() === userId.toString()
+    );
+    if (!isParticipant) throw new Error('Unauthorized');
 
     const existingReactionIndex = message.reactions.findIndex(r => r.user_id.toString() === userId.toString());
     

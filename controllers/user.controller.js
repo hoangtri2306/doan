@@ -6,10 +6,11 @@ class UserController {
     try {
       const data = await userService.register(req.body);
       
-      // Send refresh token as HTTP Only cookie
+      // Send refresh token as HTTP Only cookie (BUG-012: sameSite lax)
       res.cookie('refreshToken', data.tokens.refreshToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
         maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
       });
 
@@ -61,6 +62,7 @@ class UserController {
       res.cookie('refreshToken', data.tokens.refreshToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
         maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
       });
 

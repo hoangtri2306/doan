@@ -4,7 +4,8 @@ const User = require('../models/User');
 
 class AuthService {
   async register(data) {
-    const { email, password, role, avatar, bio, username } = data;
+    // Lưu ý: KHÔNG đọc field `role` từ client (BUG-002)
+    const { email, password, avatar, bio, username } = data;
     
     // Check if user already exists
     const existingUser = await User.findOne({ email });
@@ -16,23 +17,23 @@ class AuthService {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Create the new user
+    // Create the new user (role is ALWAYS 'USER' — never trust client input, see BUG-002)
     const newUser = new User({
       email,
       username: username || email.split('@')[0] + Math.floor(Math.random() * 10000),
       password: hashedPassword,
-      role: role || 'USER',
+      role: 'USER',
       avatar,
       bio
     });
 
     await newUser.save();
-    
-    // Return user without password
-    const userToReturn = newUser.toObject();
-    delete userToReturn.password;
-    
-    return userToReturn;
+
+    // Return user without password, in the same shape as login (BUG-012)
+    const userToReturn = this._publicUser(newUser);
+    const tokens = this._generateTokens(newUser);
+
+    return { user: userToReturn, tokens };
   }
 
   async login(email, password) {
@@ -47,6 +48,11 @@ class AuthService {
       throw new Error('Account has been deleted');
     }
 
+    // BUG-030: banned users must not be able to log in
+    if (user.status === 'BANNED') {
+      throw new Error('Tài khoản của bạn đã bị khóa.');
+    }
+
     // Compare password using bcrypt
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
@@ -54,30 +60,12 @@ class AuthService {
     }
 
     // Generate tokens
-    const payload = {
-      userId: user._id.toString(),
-      role: user.role
-    };
-
-    const accessToken = jwt.sign(payload, process.env.JWT_ACCESS_SECRET, {
-      expiresIn: process.env.JWT_ACCESS_EXPIRE || '15m'
-    });
-
-    const refreshToken = jwt.sign(payload, process.env.JWT_REFRESH_SECRET, {
-      expiresIn: process.env.JWT_REFRESH_EXPIRE || '7d'
-    });
+    const tokens = this._generateTokens(user);
 
     return {
-      accessToken,
-      refreshToken,
-      user: {
-        id: user._id.toString(),
-        email: user.email,
-        username: user.username,
-        role: user.role,
-        avatar: user.avatar,
-        bio: user.bio
-      }
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+      user: this._publicUser(user)
     };
   }
 
@@ -93,19 +81,52 @@ class AuthService {
         throw new Error('User not found or deleted');
       }
 
-      const payload = {
-        userId: user._id.toString(),
-        role: user.role
+      // BUG-030: banned users must not be able to refresh tokens
+      if (user.status === 'BANNED') {
+        throw new Error('Tài khoản của bạn đã bị khóa.');
+      }
+
+      // Token rotation: issue a NEW refresh token each time (BUG-012)
+      const tokens = this._generateTokens(user);
+
+      return {
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken
       };
-
-      const accessToken = jwt.sign(payload, process.env.JWT_ACCESS_SECRET, {
-        expiresIn: process.env.JWT_ACCESS_EXPIRE || '15m'
-      });
-
-      return { accessToken };
     } catch (error) {
+      if (error.message === 'Tài khoản của bạn đã bị khóa.') {
+        throw error;
+      }
       throw new Error('Invalid or expired refresh token');
     }
+  }
+
+  _generateTokens(user) {
+    const payload = {
+      userId: user._id.toString(),
+      role: user.role
+    };
+
+    const accessToken = jwt.sign(payload, process.env.JWT_ACCESS_SECRET, {
+      expiresIn: process.env.JWT_ACCESS_EXPIRE || '15m'
+    });
+
+    const refreshToken = jwt.sign(payload, process.env.JWT_REFRESH_SECRET, {
+      expiresIn: process.env.JWT_REFRESH_EXPIRE || '7d'
+    });
+
+    return { accessToken, refreshToken };
+  }
+
+  _publicUser(user) {
+    return {
+      id: user._id.toString(),
+      email: user.email,
+      username: user.username,
+      role: user.role,
+      avatar: user.avatar,
+      bio: user.bio
+    };
   }
 }
 

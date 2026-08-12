@@ -13,16 +13,21 @@ class NotificationRepository {
       .sort({ createdAt: -1 });
   }
 
-  async markAsRead(id) {
-    return Notification.findByIdAndUpdate(id, { is_read: true }, { new: true });
+  // BUG-008: luôn kèm recipient để chống IDOR
+  async markAsRead(id, recipient) {
+    return Notification.findOneAndUpdate(
+      { _id: id, recipient },
+      { is_read: true },
+      { new: true }
+    );
   }
 
   async markAllAsRead(recipient) {
     return Notification.updateMany({ recipient }, { is_read: true });
   }
 
-  async delete(id) {
-    return Notification.findByIdAndDelete(id);
+  async delete(id, recipient) {
+    return Notification.findOneAndDelete({ _id: id, recipient });
   }
 }
 

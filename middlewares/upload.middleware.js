@@ -4,11 +4,16 @@ const multer = require('multer');
 const storage = multer.memoryStorage();
 
 const fileFilter = (req, file, cb) => {
-  if (file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/')) {
-    cb(null, true);
-  } else {
-    cb(new Error('Invalid file type. Only images and videos are allowed!'), false);
+  const isImage = file.mimetype.startsWith('image/');
+  const isVideo = file.mimetype.startsWith('video/');
+  if (!isImage && !isVideo) {
+    return cb(new Error('Invalid file type. Only images and videos are allowed!'), false);
   }
+  // BUG-013: chặn SVG (vector chứa script → stored XSS khi serve từ /uploads)
+  if (file.mimetype === 'image/svg+xml') {
+    return cb(new Error('SVG files are not allowed'), false);
+  }
+  cb(null, true);
 };
 
 const upload = multer({ 

@@ -30,9 +30,19 @@ class ModerationService {
     return queue.filter(item => item.target_id !== null);
   }
 
+  // BUG-031: chỉ xử lý item PENDING và target còn tồn tại
+  async _assertProcessable(item) {
+    if (!item) throw new Error('Queue item not found');
+    if (item.status !== 'PENDING') throw new Error('Queue item already reviewed');
+
+    const model = item.target_model === 'Comment' ? require('../models/Comment') : require('../models/Post');
+    const target = await model.findById(item.target_id);
+    if (!target) throw new Error('Target content no longer exists');
+  }
+
   async approve(queueId) {
     const item = await moderationRepository.findQueueItemById(queueId);
-    if (!item) throw new Error('Queue item not found');
+    await this._assertProcessable(item);
 
     if (item.target_model === 'Comment') {
       const Comment = require('../models/Comment');
@@ -47,7 +57,7 @@ class ModerationService {
 
   async hide(queueId) {
     const item = await moderationRepository.findQueueItemById(queueId);
-    if (!item) throw new Error('Queue item not found');
+    await this._assertProcessable(item);
 
     if (item.target_model === 'Comment') {
       const Comment = require('../models/Comment');
@@ -61,7 +71,7 @@ class ModerationService {
   }
   async warn(queueId) {
     const item = await moderationRepository.findQueueItemById(queueId);
-    if (!item) throw new Error('Queue item not found');
+    await this._assertProcessable(item);
 
     if (item.target_model === 'Comment') {
       const Comment = require('../models/Comment');

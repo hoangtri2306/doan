@@ -10,5 +10,7 @@ const followSchema = new mongoose.Schema(
 
 // Unique index to prevent duplicate follows
 followSchema.index({ follower_id: 1, following_id: 1 }, { unique: true });
+// BUG-026: query follower list theo following_id
+followSchema.index({ following_id: 1 });
 
 module.exports = mongoose.model('Follow', followSchema);

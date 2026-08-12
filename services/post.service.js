@@ -1,6 +1,7 @@
 const postRepository = require('../repositories/post.repo');
 const interactionRepository = require('../repositories/interaction.repo');
 const Post = require('../models/Post');
+const { sanitizeContent } = require('../utils/sanitize');
 
 class PostService {
   async createPost(user_id, data) {
@@ -22,7 +23,7 @@ class PostService {
       author: user_id,
       slug: titleForSlug.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-') + '-' + Date.now(),
       content_json: data.content_json,
-      content_html: data.content_html,
+      content_html: sanitizeContent(data.content_html), // BUG-001: chống stored XSS
       tags: data.tags || [],
       reading_time: readingTime,
       is_sensitive: false,
@@ -32,57 +33,20 @@ class PostService {
 
     const newPost = await postRepository.create(postData);
 
-    // If AI flags as SPAM or TOXIC, push to ModerationQueue
+    // If AI flags as SPAM or TOXIC → queue + cập nhật violation stats + thông báo
     if (label === 'SPAM' || label === 'TOXIC') {
-      const moderationRepository = require('../repositories/moderation.repo');
-      const userRepository = require('../repositories/user.repo');
-      const notificationService = require('./notification.service');
-
-      await moderationRepository.addToQueue({
-        target_id: newPost._id,
-        target_model: 'Post',
-        reason: `AI Flagged as ${label}`,
-        spam_score,
-        toxicity_score,
-        status: 'PENDING'
-      });
-
-      // Update user violation stats
-      const user = await userRepository.findById(user_id);
-      if (user) {
-        let { spamCount, toxicCount } = user;
-        if (label === 'SPAM') spamCount += 1;
-        if (label === 'TOXIC') toxicCount += 1;
-        const violationScore = (spamCount * 1) + (toxicCount * 3);
-        
-        let status = user.status;
-        if (status !== 'BANNED') {
-          if (violationScore >= 10) status = 'BANNED';
-          else if (violationScore >= 5) status = 'WARNING';
-        }
-
-        await userRepository.update(user_id, { spamCount, toxicCount, violationScore, status });
-      }
-
-      // Gửi thông báo hệ thống cho user
-      // Tạo preview nội dung để user nhớ lại họ đã viết gì
       const contentPreview = [
         data.title && data.title !== 'No Title' ? data.title : '',
         bodyText.slice(0, 200)
       ].filter(Boolean).join('\n').trim();
 
-      await notificationService.sendSystemNotification({
-        recipient: user_id,
-        type: 'AI_MODERATION',
-        entity_id: newPost._id,
-        entity_model: 'Post',
-        metadata: {
-          ai_label: label,
-          target_model: 'Post',
-          spam_score,
-          toxicity_score,
-          content_preview: contentPreview.slice(0, 300)  // nội dung gốc user viết
-        }
+      await this._flagForModeration(user_id, {
+        target_id: newPost._id,
+        target_model: 'Post',
+        label,
+        spam_score,
+        toxicity_score,
+        content_preview: contentPreview
       });
     }
 
@@ -110,7 +74,7 @@ class PostService {
       author: user_id,
       title: `Repost: ${originalPost.title}`,
       slug: `repost-${originalPost._id}-${Date.now()}`,
-      content_html: data.content_html || '<p></p>',
+      content_html: sanitizeContent(data.content_html || '<p></p>'), // BUG-001
       content_json: data.content_json || {},
       status: 'PUBLISHED',
       visibility: 'PUBLIC',
@@ -134,19 +98,36 @@ class PostService {
     return newPost;
   }
 
+  // BUG-005: PUBLIC ai xem được; PRIVATE/HIDDEN chỉ tác giả
+  _canView(post, current_user_id) {
+    if (post.visibility === 'PUBLIC') return true;
+    if (!current_user_id) return false;
+    return post.author?._id?.toString() === current_user_id.toString();
+  }
+
   async getPost(id, current_user_id = null) {
     const post = await postRepository.findById(id);
     if (!post) return null;
+    // BUG-005: chặn đọc post PRIVATE/HIDDEN của người khác
+    if (!this._canView(post, current_user_id)) return null;
     
     const postObj = post.toObject();
-    postObj.likesCount = await interactionRepository.countInteractions(id, 'LIKE');
-    postObj.bookmarksCount = await interactionRepository.countInteractions(id, 'BOOKMARK');
-    postObj.sharesCount = await postRepository.countReposts(id);
+    // BUG-017: chạy song song các query count
+    [postObj.likesCount, postObj.bookmarksCount, postObj.sharesCount] = await Promise.all([
+      interactionRepository.countInteractions(id, 'LIKE'),
+      interactionRepository.countInteractions(id, 'BOOKMARK'),
+      postRepository.countReposts(id)
+    ]);
     
     if (current_user_id) {
-      postObj.isLiked = !!(await interactionRepository.findInteraction(current_user_id, id, 'LIKE'));
-      postObj.isBookmarked = !!(await interactionRepository.findInteraction(current_user_id, id, 'BOOKMARK'));
-      postObj.isReposted = !!(await postRepository.findOne({ author: current_user_id, original_post: id }));
+      const [isLiked, isBookmarked, isReposted] = await Promise.all([
+        interactionRepository.findInteraction(current_user_id, id, 'LIKE'),
+        interactionRepository.findInteraction(current_user_id, id, 'BOOKMARK'),
+        postRepository.findOne({ author: current_user_id, original_post: id })
+      ]);
+      postObj.isLiked = !!isLiked;
+      postObj.isBookmarked = !!isBookmarked;
+      postObj.isReposted = !!isReposted;
     }
     
     return postObj;
@@ -155,16 +136,25 @@ class PostService {
   async getPostBySlug(slug, current_user_id = null) {
     const post = await postRepository.findBySlug(slug);
     if (!post) return null;
+    // BUG-005: chặn đọc post PRIVATE/HIDDEN của người khác
+    if (!this._canView(post, current_user_id)) return null;
     
     const postObj = post.toObject();
-    postObj.likesCount = await interactionRepository.countInteractions(post._id, 'LIKE');
-    postObj.bookmarksCount = await interactionRepository.countInteractions(post._id, 'BOOKMARK');
-    postObj.sharesCount = await postRepository.countReposts(post._id);
+    [postObj.likesCount, postObj.bookmarksCount, postObj.sharesCount] = await Promise.all([
+      interactionRepository.countInteractions(post._id, 'LIKE'),
+      interactionRepository.countInteractions(post._id, 'BOOKMARK'),
+      postRepository.countReposts(post._id)
+    ]);
     
     if (current_user_id) {
-      postObj.isLiked = !!(await interactionRepository.findInteraction(current_user_id, post._id, 'LIKE'));
-      postObj.isBookmarked = !!(await interactionRepository.findInteraction(current_user_id, post._id, 'BOOKMARK'));
-      postObj.isReposted = !!(await postRepository.findOne({ author: current_user_id, original_post: post._id }));
+      const [isLiked, isBookmarked, isReposted] = await Promise.all([
+        interactionRepository.findInteraction(current_user_id, post._id, 'LIKE'),
+        interactionRepository.findInteraction(current_user_id, post._id, 'BOOKMARK'),
+        postRepository.findOne({ author: current_user_id, original_post: post._id })
+      ]);
+      postObj.isLiked = !!isLiked;
+      postObj.isBookmarked = !!isBookmarked;
+      postObj.isReposted = !!isReposted;
     }
     
     return postObj;
@@ -178,18 +168,105 @@ class PostService {
     }
     
     const updateData = {};
-    if (data.title) updateData.title = data.title;
+    let contentChanged = false;
+
+    if (data.title) { updateData.title = data.title; contentChanged = true; }
     if (data.content_json) updateData.content_json = data.content_json;
     if (data.content_html) {
-      updateData.content_html = data.content_html;
+      updateData.content_html = sanitizeContent(data.content_html); // BUG-001
       // Recalculate reading time
-      const text = data.content_html.replace(/<[^>]+>/g, ' ');
+      const text = updateData.content_html.replace(/<[^>]+>/g, ' ');
       const wordCount = text.trim().split(/\s+/).length;
       updateData.reading_time = Math.max(1, Math.ceil(wordCount / 200));
+      contentChanged = true;
     }
     if (data.tags) updateData.tags = data.tags;
+
+    // BUG-010: chạy lại AI moderation khi nội dung thay đổi — không cho bypass kiểm duyệt
+    let aiLabel = null;
+    let aiSpam = 0;
+    let aiToxic = 0;
+    if (contentChanged) {
+      const aiService = require('./ai.service');
+      const bodyText = updateData.content_html ? updateData.content_html.replace(/<[^>]+>/g, ' ') : '';
+      const analyzeText = [data.title || '', bodyText].filter(Boolean).join(' ').trim();
+      const aiResult = await aiService.analyze(analyzeText);
+      aiLabel = aiResult.label;
+      aiSpam = aiResult.spam_score;
+      aiToxic = aiResult.toxicity_score;
+
+      if (aiLabel === 'SPAM' || aiLabel === 'TOXIC') {
+        updateData.visibility = 'HIDDEN';
+      }
+    }
  
-    return postRepository.update(id, updateData);
+    const updated = await postRepository.update(id, updateData);
+
+    if (aiLabel === 'SPAM' || aiLabel === 'TOXIC') {
+      const contentPreview = [
+        data.title || '',
+        (updateData.content_html || '').replace(/<[^>]+>/g, ' ').slice(0, 200)
+      ].filter(Boolean).join('\n').trim();
+
+      await this._flagForModeration(user_id, {
+        target_id: id,
+        target_model: 'Post',
+        label: aiLabel,
+        spam_score: aiSpam,
+        toxicity_score: aiToxic,
+        content_preview: contentPreview
+      });
+    }
+
+    return updated;
+  }
+
+  // BUG-010: xử lý chung khi AI flag nội dung (queue + violation stats + thông báo)
+  async _flagForModeration(user_id, { target_id, target_model, label, spam_score, toxicity_score, content_preview }) {
+    const moderationRepository = require('../repositories/moderation.repo');
+    const userRepository = require('../repositories/user.repo');
+    const notificationService = require('./notification.service');
+
+    await moderationRepository.addToQueue({
+      target_id,
+      target_model,
+      reason: `AI Flagged as ${label}`,
+      spam_score,
+      toxicity_score,
+      status: 'PENDING'
+    });
+
+    // Update user violation stats
+    const user = await userRepository.findById(user_id);
+    if (user) {
+      let { spamCount, toxicCount } = user;
+      if (label === 'SPAM') spamCount += 1;
+      if (label === 'TOXIC') toxicCount += 1;
+      const violationScore = (spamCount * 1) + (toxicCount * 3);
+
+      let status = user.status;
+      if (status !== 'BANNED') {
+        if (violationScore >= 10) status = 'BANNED';
+        else if (violationScore >= 5) status = 'WARNING';
+      }
+
+      await userRepository.update(user_id, { spamCount, toxicCount, violationScore, status });
+    }
+
+    // Gửi thông báo hệ thống cho user kèm preview nội dung
+    await notificationService.sendSystemNotification({
+      recipient: user_id,
+      type: 'AI_MODERATION',
+      entity_id: target_id,
+      entity_model: target_model,
+      metadata: {
+        ai_label: label,
+        target_model,
+        spam_score,
+        toxicity_score,
+        content_preview: (content_preview || '').slice(0, 300)
+      }
+    });
   }
 
   async listPosts(query = {}, skip = 0, limit = 10, current_user_id = null) {
@@ -212,7 +289,12 @@ class PostService {
   }
 
   async getPostsByUser(user_id, current_user_id = null) {
-    const posts = await postRepository.findByAuthor(user_id);
+    let posts = await postRepository.findByAuthor(user_id);
+    // BUG-006: người xem khác chỉ thấy post PUBLIC của user
+    const isOwner = current_user_id && current_user_id.toString() === user_id.toString();
+    if (!isOwner) {
+      posts = posts.filter(p => p.visibility === 'PUBLIC');
+    }
     return this._enrichPosts(posts, current_user_id);
   }
 

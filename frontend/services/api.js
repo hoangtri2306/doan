@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { getToken, getRefreshToken, setToken, removeToken } from '../utils/token';
+import { getToken, setToken, removeToken } from '../utils/token';
 
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api',
@@ -57,15 +57,10 @@ api.interceptors.response.use(
       originalRequest._retry = true;
       isRefreshing = true;
 
-      const refreshToken = getRefreshToken();
-      if (!refreshToken) {
-        removeToken();
-        if (typeof window !== 'undefined') window.location.href = '/login';
-        return Promise.reject(error);
-      }
-
       try {
-        const { data } = await axios.post(`${api.defaults.baseURL}/auth/refresh`, { refreshToken });
+        // BUG-012: refresh token nằm trong httpOnly cookie — KHÔNG gửi trong body,
+        // bắt buộc withCredentials để cookie tự động kèm theo.
+        const { data } = await axios.post(`${api.defaults.baseURL}/auth/refresh`, {}, { withCredentials: true });
         const { accessToken } = data.data;
         
         setToken(accessToken);

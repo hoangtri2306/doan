@@ -15,7 +15,8 @@ const messageSchema = new mongoose.Schema({
   content: {
     type: String,
     trim: true,
-    default: ''
+    default: '',
+    maxlength: 10000 // BUG-019
   },
   media: [{
     url: String,
@@ -32,6 +33,9 @@ const messageSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
+
+// BUG-026: phân trang tin nhắn theo conversation + thời gian
+messageSchema.index({ conversation_id: 1, createdAt: -1 });
 
 module.exports = mongoose.model('Message', messageSchema);
 

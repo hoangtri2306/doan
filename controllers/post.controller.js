@@ -38,7 +38,8 @@ class PostController {
             
             return {
               type: isVideo ? 'VIDEO' : 'IMAGE',
-              url: `http://localhost:5000/uploads/${filename}`,
+              // BUG-029: URL relative thay vì hardcode localhost
+              url: `/uploads/${filename}`,
               public_id: filename,
               order_index: index
             };
@@ -52,14 +53,17 @@ class PostController {
         title: title || 'No Title', // Fallback
         content_html: content_html || req.body.content || '',
         content_json: content_json ? JSON.parse(content_json) : { text: req.body.content || '' },
-        tags: tags ? tags.split(',') : [],
+        // BUG-015: multipart trả tags dạng array khi có nhiều field trùng tên
+        tags: Array.isArray(tags) ? tags.filter(Boolean) : (tags ? String(tags).split(',') : []),
         visibility: visibility || 'PUBLIC',
         media: uploadedMedia
       };
 
       const post = await postService.createPost(req.user.id, postData);
       
-      const io = req.app.get('io');
+      // BUG-032: dùng socketService thay vì req.app.get('io') (luôn undefined)
+      const socketService = require('../services/socket.service');
+      const io = socketService.getIO();
       if (io && post.visibility === 'PUBLIC') {
         io.emit('new_post', post);
       }
@@ -107,6 +111,12 @@ class PostController {
         .select('title content_html visibility author label');
       if (!post) {
         return res.status(404).json({ success: false, message: 'Post not found', data: null });
+      }
+      // BUG-007: chỉ chủ sở hữu hoặc ADMIN/MODERATOR được đọc nội dung ẩn
+      const isOwner = post.author.toString() === req.user.id.toString();
+      const isStaff = ['ADMIN', 'MODERATOR'].includes(req.user.role);
+      if (!isOwner && !isStaff) {
+        return res.status(403).json({ success: false, message: 'Forbidden', data: null });
       }
       res.status(200).json({ success: true, data: post });
     } catch (error) {

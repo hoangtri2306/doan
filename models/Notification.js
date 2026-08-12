@@ -18,4 +18,7 @@ const notificationSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// BUG-026: query thông báo theo recipient
+notificationSchema.index({ recipient: 1, createdAt: -1 });
+
 module.exports = mongoose.model('Notification', notificationSchema);

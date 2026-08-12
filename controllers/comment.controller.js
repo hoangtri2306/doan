@@ -37,6 +37,12 @@ class CommentController {
       const Comment = require('../models/Comment');
       const comment = await Comment.findById(req.params.id).select('content author label is_hidden createdAt');
       if (!comment) return res.status(404).json({ success: false, message: 'Comment not found' });
+      // BUG-007: chỉ chủ sở hữu hoặc ADMIN/MODERATOR được đọc chi tiết (kể cả comment ẩn)
+      const isOwner = comment.author.toString() === req.user.id.toString();
+      const isStaff = ['ADMIN', 'MODERATOR'].includes(req.user.role);
+      if (!isOwner && !isStaff) {
+        return res.status(403).json({ success: false, message: 'Forbidden' });
+      }
       res.status(200).json({ success: true, data: comment });
     } catch (error) {
       next(error);
