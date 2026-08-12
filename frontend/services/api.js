@@ -42,6 +42,14 @@ api.interceptors.response.use(
       return Promise.reject(error);
     }
 
+    // Không refresh khi chính bản thân các endpoint auth báo 401 (login sai mật khẩu v.v.)
+    // — tránh redirect lặp làm mất thông báo lỗi.
+    const AUTH_PATHS = ['/auth/login', '/auth/register', '/auth/refresh', '/users/login', '/users/register', '/users/refresh'];
+    const requestUrl = originalRequest?.url || '';
+    if (AUTH_PATHS.some(p => requestUrl.includes(p))) {
+      return Promise.reject(error);
+    }
+
     if (error.response?.status === 401 && !originalRequest._retry) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {

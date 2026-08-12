@@ -28,8 +28,9 @@ const sanitizeContent = (html) => {
   return sanitizeHtml(String(html), {
     allowedTags: ALLOWED_TAGS,
     allowedAttributes: ALLOWED_ATTRIBUTES,
-    // Only allow safe URL schemes (data: kept minimal for images)
-    allowedSchemes: ['http', 'https', 'mailto', 'data'],
+    // Only allow safe URL schemes; data: chỉ giới hạn cho img (tránh a[href=data:text/html...])
+    allowedSchemes: ['http', 'https', 'mailto'],
+    allowedSchemesByTag: { img: ['http', 'https', 'data'] },
     disallowedTagsMode: 'discard'
   });
 };

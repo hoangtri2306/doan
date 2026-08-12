@@ -4,6 +4,11 @@ const errorMiddleware = (err, req, res, next) => {
   let statusCode = res.statusCode === 200 ? 500 : res.statusCode;
   let message = err.message || 'Internal Server Error';
 
+  // Tôn trọng status tự khai báo trên error (VD: fileFilter gắn err.status = 400)
+  if (typeof err.status === 'number' && err.status >= 400 && err.status < 600) {
+    statusCode = err.status;
+  }
+
   // BUG-013: MulterError (file quá lớn, sai field...) → 4xx thay vì 500
   if (err instanceof multer.MulterError) {
     statusCode = err.code === 'LIMIT_FILE_SIZE' ? 413 : 400;

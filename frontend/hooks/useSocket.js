@@ -15,8 +15,9 @@ export const useSocket = () => {
   useEffect(() => {
     if (isAuthenticated && user) {
       // Connect to the backend (BUG-003: phải kèm JWT để xác thực socket)
+      // auth dạng hàm → lấy token MỚI mỗi lần connect/reconnect (tránh token hết hạn)
       socketRef.current = io(process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:5000', {
-        auth: { token: getToken() }
+        auth: (cb) => cb({ token: getToken() })
       });
       setSocket(socketRef.current);
       
@@ -32,6 +33,7 @@ export const useSocket = () => {
 
       return () => {
         socketRef.current.disconnect();
+        setSocket(null);
       };
     }
   }, [isAuthenticated, user]);

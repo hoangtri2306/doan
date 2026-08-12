@@ -72,7 +72,8 @@ class PostService {
     
     const postData = {
       author: user_id,
-      title: `Repost: ${originalPost.title}`,
+      // BUG-019 follow-up: cắt title để không vượt maxlength 255 (repost title dài -> 400)
+      title: `Repost: ${originalPost.title}`.slice(0, 255),
       slug: `repost-${originalPost._id}-${Date.now()}`,
       content_html: sanitizeContent(data.content_html || '<p></p>'), // BUG-001
       content_json: data.content_json || {},

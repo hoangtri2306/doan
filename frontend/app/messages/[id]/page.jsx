@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { Send, ArrowLeft, Trash2, Image as ImageIcon, Smile, MoreVertical, X } from 'lucide-react';
 import { format, isToday, isYesterday } from 'date-fns';
 import { io } from 'socket.io-client';
+import { getToken } from '../../../utils/token';
 
 /* Format time separator */
 function formatSeparator(date) {
@@ -69,9 +70,11 @@ export default function ChatWindow({ params }) {
     }
   }, [messages]);
 
-  /* Socket */
+  /* Socket — BUG-003: phải kèm JWT (auth dạng hàm để lấy token mới mỗi lần reconnect) */
   useEffect(() => {
-    socketRef.current = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5000');
+    socketRef.current = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5000', {
+      auth: (cb) => cb({ token: getToken() })
+    });
     socketRef.current.emit('join_user_room', user?.id);
 
     socketRef.current.on('new_message', (data) => {

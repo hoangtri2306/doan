@@ -10,8 +10,11 @@ const fileFilter = (req, file, cb) => {
     return cb(new Error('Invalid file type. Only images and videos are allowed!'), false);
   }
   // BUG-013: chặn SVG (vector chứa script → stored XSS khi serve từ /uploads)
+  // Gắn err.status=400 để errorMiddleware trả 4xx thay vì 500
   if (file.mimetype === 'image/svg+xml') {
-    return cb(new Error('SVG files are not allowed'), false);
+    const err = new Error('SVG files are not allowed');
+    err.status = 400;
+    return cb(err, false);
   }
   cb(null, true);
 };

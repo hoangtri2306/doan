@@ -12,6 +12,12 @@ const routes = require('./routes');
 
 const app = express();
 
+// BUG-011: khai báo trust proxy khi deploy sau reverse proxy (nginx/render/vercel...)
+// Mặc định false ở local; set TRUST_PROXY=1 (hoặc số hop) trong .env production.
+if (process.env.TRUST_PROXY) {
+  app.set('trust proxy', Number(process.env.TRUST_PROXY));
+}
+
 // Middlewares
 // BUG-020: security headers (tắt CSP để không vỡ inline styles của frontend hiện tại)
 app.use(helmet({ contentSecurityPolicy: false }));

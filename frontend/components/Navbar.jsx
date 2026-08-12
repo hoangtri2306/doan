@@ -56,7 +56,8 @@ export default function Navbar() {
       fetchUnread();
 
       const socket = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5000', {
-        auth: { token: getToken() } // BUG-003: socket cần xác thực JWT
+        // BUG-003: socket cần xác thực JWT; dạng hàm để lấy token mới mỗi lần reconnect
+        auth: (cb) => cb({ token: getToken() })
       });
       socket.emit('join_user_room', user.id);
       socket.on('new_message', () => setUnreadMessages(prev => prev + 1));
