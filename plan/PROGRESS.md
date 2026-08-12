@@ -39,18 +39,18 @@
 | BUG-030 | Medium | P2 | ✅ DONE | S1 | auth.login/refresh check BANNED + checkStatus thêm vào 5 route |
 | BUG-031 | Medium | P2 | ✅ DONE | S1 | moderation chỉ xử lý PENDING + target tồn tại |
 | BUG-032 | Medium | P2 | ✅ DONE | S1 | dùng socketService.getIO() |
-| BUG-033 | Low | P3 | ⏳ DEFERRED | — | ESLint errors pre-existing (set-state-in-effect, unescaped entities) |
-| BUG-034 | Low | P3 | ⏳ DEFERRED | — | on_event deprecated |
-| BUG-035 | Low | P3 | ⏳ DEFERRED | — | username random collision |
+| BUG-033 | Low | P3 | ✅ DONE | S5 | ESLint 0 errors: inline async effect + ignore flag, unescaped entities, NotificationBell hoisting, profile/edit adjusting-state-during-render |
+| BUG-034 | Low | P3 | ✅ DONE | S5 | ai_service/main.py: @app.on_event → lifespan context manager |
+| BUG-035 | Low | P3 | ✅ DONE | S5 | register retry 3 lần + suffix khi username trùng (giữ username user chọn) |
 | BUG-036 | Low | P3 | ✅ DONE | S1 | validate username 3-30 ký tự + pattern |
-| BUG-037 | Low | P3 | ⏳ DEFERRED | — | user enumeration register |
-| BUG-038 | Low | P3 | ⏳ DEFERRED | — | admin changeRole self-protection |
+| BUG-037 | Low | P3 | ✅ DONE | S5 | register trả message chung 'Registration failed' thay 'User already exists' |
+| BUG-038 | Low | P3 | ✅ DONE | S5 | changeRole: validate role + chặn hạ quyền admin cuối cùng |
 | BUG-039 | Low | P3 | ✅ DONE | S1 | chặn conversation với chính mình + recipient không tồn tại |
-| BUG-040 | Low | P3 | ⏳ DEFERRED | — | admin pagination |
-| BUG-041 | Low | P3 | ⏳ DEFERRED | — | morgan dev trong production |
-| BUG-042 | Low | P3 | ⏳ DEFERRED | — | messages mobile |
-| BUG-043 | Low | P3 | ⏳ DEFERRED | — | package.json main |
-| BUG-044 | Low | P3 | ⏳ DEFERRED | — | typo "Bài đă đăng" |
+| BUG-040 | Low | P3 | ✅ DONE | S5 | pagination users/posts/reports (?page&limit + meta) — AdminPagination component, dashboard không truyền page vẫn lấy đủ data |
+| BUG-041 | Low | P3 | ✅ DONE | S5 | morgan: dev khi NODE_ENV != production, combined khi production |
+| BUG-042 | Low | P3 | ✅ DONE | S5 | messages placeholder hiện mobile khi không có conversation (layout showListOnMobile + bỏ hidden) |
+| BUG-043 | Low | P3 | ✅ DONE | S5 | package.json main → app.js |
+| BUG-044 | Low | P3 | ✅ DONE | S5 | typo "Bài đă đăng" → "Bài đã đăng" |
 | Dependency | — | P3 | ✅ DONE | S2 | `npm audit fix`: backend 0 vulns; frontend nâng next 16.2.4→^16.3.0, axios lên 1.18+, còn 0 vulns. `next build` pass toàn bộ routes |
 | BUG-045 | High | P1 | ✅ DONE | S3 | Media message fallback local khi thiếu Cloudinary (controllers/message.controller.js) |
 | BUG-046 | Medium | P2 | ✅ DONE | S3 | Authorization error trả 403/404 qua utils/httpError.js thay vì 500 |
@@ -102,6 +102,26 @@
 - ✅ **BUG-027** — checkStatus cache: tạo `utils/statusCache.js` (Map + TTL 30s, `getCachedStatus/setCachedStatus/invalidateStatus`). `checkStatus` chỉ query DB khi cache miss; `invalidateStatus` gọi ở: admin ban/mute/resetScore, auto-status trong `post.service._flagForModeration` và `comment.service.createComment`.
 - ✅ **Smoke test S4: 14/14 PASS** (`logs/smoke-s4.js`): register `/auth/*` 201 + legacy `/users/*` 404, `/users/me` OK, getOrCreate song song → cùng conversation + participant_key, send message, create post qua checkStatus, comment ẩn giữ cây + content null + reply đúng parent.
 - ✅ Validate: `node --check` 11 file backend pass, ESLint frontend 0 lỗi mới.
+- ✅ Commit + push (xem git log).
+
+### Session 5 — 2026-08-13 (fix toàn bộ bug P3 còn lại)
+- ✅ **BUG-034** — `ai_service/main.py`: thay `@app.on_event("startup")` (deprecated) bằng `lifespan` context manager (FastAPI hiện đại).
+- ✅ **BUG-035 + BUG-037** — `services/auth.service.js` register: retry 3 lần khi username trùng (giữ username user chọn + suffix `_xxxx` thay vì bỏ hẳn); email check chuyển ra ngoài loop; trả message chung `'Registration failed'` thay `'User already exists'` (chống user enumeration).
+- ✅ **BUG-038** — `controllers/admin.controller.js` changeRole: validate role ∈ {USER, MODERATOR, ADMIN}, check target tồn tại, chặn hạ quyền ADMIN cuối cùng (countDocuments role ADMIN).
+- ✅ **BUG-040** — pagination admin: `getPaginationParams` (function NGOÀI class — tránh lỗi `this` kiểu BUG-047), users/posts/reports nhận `?page=&limit=` + trả `pagination` meta khi có page, không truyền page → trả toàn bộ (dashboard giữ nguyên). Frontend: `admin.service.js` nhận page, component `AdminPagination.jsx` mới (kèm auto-clamp page khi xóa item cuối trang), 3 trang admin dùng.
+- ✅ **BUG-041** — `app.js`: morgan `'dev'` chỉ khi không phải production; production dùng `'combined'`.
+- ✅ **BUG-042** — messages: layout tính `showListOnMobile` — mobile hiện placeholder khi không có conversation (tránh aside w-full + main tràn màn hình); `messages/page.jsx` bỏ `hidden`.
+- ✅ **BUG-043** — `package.json`: `main` → `app.js` (entry thực tế).
+- ✅ **BUG-044** — typo "Bài đă đăng" → "Bài đã đăng" (admin dashboard).
+- ✅ **BUG-033** — **ESLint 0 errors** (trước 23):
+  - `set-state-in-effect`: refactor các `useEffect(() => { fetchX(); }, [])` sang **inline async + ignore flag** (pattern React khuyến nghị) ở admin page/appeals/moderation/posts/reports/users/violations, post/[slug], profile, NotificationBell; `fetchX` giữ lại cho event handlers.
+  - `login/page.jsx`: đọc query param `?error=` qua setTimeout(0) thay setState đồng bộ.
+  - `profile/edit`: sync user→form bằng pattern **adjusting state during render** (setPrevUser) thay effect.
+  - `no-unescaped-entities`: escape `"` → `&ldquo;&rdquo;`, `'` → `&apos;` ở 6 file.
+  - `NotificationBell`: khai báo `fetchNotifications` trước effect (accessed-before-declared).
+- ✅ **Smoke test S5: 10/10 PASS** (register không username, email trùng message chung, pagination 3 endpoint + dashboard full-data, changeRole chặn role lạ + hành vi admin count).
+- ✅ **Code review (deepseek-flash)** → phát hiện & fix 1 regression High: `profile/edit` dùng initial-state thuần sẽ rỗng vì `user` load async → chuyển sang adjusting-state-during-render; + fix register email-check ngoài loop, clamp page pagination.
+- ✅ Validate: `node --check` backend pass, `py_compile` AI pass, ESLint 0 errors, **`next build` pass toàn bộ routes**.
 - ✅ Commit + push (xem git log).
 
 ## Ghi chú kỹ thuật quan trọng (đọc trước khi fix)
