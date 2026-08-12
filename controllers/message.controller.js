@@ -47,14 +47,25 @@ class MessageController {
       
       if (req.files && req.files.length > 0) {
         const cloudinaryService = require('../services/cloudinary.service');
-        // BUG-014: cloudinary.service chỉ export uploadToCloudinary (không có uploadFile)
+        // BUG-014: dùng uploadToCloudinary (không có uploadFile)
+        // BUG-045: thêm fallback local storage khi thiếu Cloudinary (giống post.controller)
         const uploadPromises = req.files.map(file => {
           const isVideo = file.mimetype.startsWith('video/');
           return cloudinaryService.uploadToCloudinary(file.buffer, 'messages_media', isVideo ? 'video' : 'image')
             .then(result => ({
               url: result.secure_url,
               type: isVideo ? 'VIDEO' : 'IMAGE'
-            }));
+            }))
+            .catch(() => {
+              const fs = require('fs');
+              const path = require('path');
+              const uploadDir = path.join(__dirname, '..', 'uploads');
+              if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+              const ext = path.extname(file.originalname) || (isVideo ? '.mp4' : '.jpg');
+              const filename = `msg_${Date.now()}_${Math.random().toString(36).slice(2, 8)}${ext}`;
+              fs.writeFileSync(path.join(uploadDir, filename), file.buffer);
+              return { url: `/uploads/${filename}`, type: isVideo ? 'VIDEO' : 'IMAGE' };
+            });
         });
         media = await Promise.all(uploadPromises);
       }

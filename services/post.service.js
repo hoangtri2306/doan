@@ -2,6 +2,7 @@ const postRepository = require('../repositories/post.repo');
 const interactionRepository = require('../repositories/interaction.repo');
 const Post = require('../models/Post');
 const { sanitizeContent } = require('../utils/sanitize');
+const { httpError } = require('../utils/httpError');
 
 class PostService {
   async createPost(user_id, data) {
@@ -163,9 +164,9 @@ class PostService {
 
   async updatePost(id, data, user_id) {
     const post = await postRepository.findById(id);
-    if (!post) throw new Error('Post not found');
+    if (!post) throw httpError(404, 'Post not found');
     if (post.author._id.toString() !== user_id.toString()) {
-      throw new Error('Unauthorized to edit this post');
+      throw httpError(403, 'Unauthorized to edit this post');
     }
     
     const updateData = {};
@@ -277,9 +278,9 @@ class PostService {
 
   async deletePost(id, user_id) {
     const post = await postRepository.findById(id);
-    if (!post) throw new Error('Post not found');
+    if (!post) throw httpError(404, 'Post not found');
     if (post.author._id.toString() !== user_id.toString()) {
-      throw new Error('Unauthorized to delete this post');
+      throw httpError(403, 'Unauthorized to delete this post');
     }
     return postRepository.delete(id);
   }

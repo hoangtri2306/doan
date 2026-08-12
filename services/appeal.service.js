@@ -1,4 +1,5 @@
 const appealRepository = require('../repositories/appeal.repo');
+const { httpError } = require('../utils/httpError');
 
 class AppealService {
   /**
@@ -13,14 +14,14 @@ class AppealService {
       const post = await Post.findById(target_id).select('author');
       if (!post) throw new Error('Nội dung không tồn tại.');
       if (post.author.toString() !== user_id.toString()) {
-        throw new Error('Bạn không thể kháng cáo nội dung của người khác.');
+        throw httpError(403, 'Bạn không thể kháng cáo nội dung của người khác.');
       }
     } else if (target_model === 'Comment') {
       const Comment = require('../models/Comment');
       const comment = await Comment.findById(target_id).select('author');
       if (!comment) throw new Error('Nội dung không tồn tại.');
       if (comment.author.toString() !== user_id.toString()) {
-        throw new Error('Bạn không thể kháng cáo nội dung của người khác.');
+        throw httpError(403, 'Bạn không thể kháng cáo nội dung của người khác.');
       }
     } else {
       throw new Error('Loại nội dung không hợp lệ.');

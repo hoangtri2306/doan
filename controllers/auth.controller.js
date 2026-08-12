@@ -1,20 +1,21 @@
 const authService = require('../services/auth.service');
 
-class AuthController {
-  // BUG-012: refresh token chỉ qua httpOnly cookie (sameSite lax), không trả trong body
-  _setRefreshCookie(res, token) {
-    res.cookie('refreshToken', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
-    });
-  }
+// BUG-012: refresh token chỉ qua httpOnly cookie (sameSite lax), không trả trong body
+// LƯU Ý: phải là function ngoài class — Express gọi handler như function thường nên `this` undefined
+function setRefreshCookie(res, token) {
+  res.cookie('refreshToken', token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+  });
+}
 
+class AuthController {
   async register(req, res) {
     try {
       const { user, tokens } = await authService.register(req.body);
-      this._setRefreshCookie(res, tokens.refreshToken);
+      setRefreshCookie(res, tokens.refreshToken);
       res.status(201).json({
         success: true,
         data: {
@@ -45,7 +46,7 @@ class AuthController {
       }
 
       const data = await authService.login(email, password);
-      this._setRefreshCookie(res, data.refreshToken);
+      setRefreshCookie(res, data.refreshToken);
       
       res.status(200).json({
         success: true,
@@ -73,7 +74,7 @@ class AuthController {
       }
 
       const data = await authService.refreshToken(refreshToken);
-      this._setRefreshCookie(res, data.refreshToken); // rotation: set cookie mới
+      setRefreshCookie(res, data.refreshToken); // rotation: set cookie mới
 
       res.status(200).json({
         success: true,

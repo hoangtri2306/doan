@@ -21,3 +21,6 @@ final_model/
 # Python bytecode
 __pycache__/
 *.pyc
+
+# Runtime logs & smoke tests (không commit)
+logs/

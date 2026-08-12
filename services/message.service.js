@@ -1,6 +1,7 @@
 const conversationRepo = require('../repositories/conversation.repo');
 const messageRepo = require('../repositories/message.repo');
 const socketService = require('./socket.service');
+const { httpError } = require('../utils/httpError');
 
 class MessageService {
   async sendMessage(senderId, recipientId, content, media = []) {
@@ -34,7 +35,7 @@ class MessageService {
     if (!conversation) throw new Error('Conversation not found');
     
     const isParticipant = conversation.participants.some(p => p._id.toString() === userId.toString());
-    if (!isParticipant) throw new Error('Unauthorized');
+    if (!isParticipant) throw httpError(403, 'Unauthorized');
 
     await messageRepo.markAsRead(conversationId, userId);
     return messageRepo.findByConversation(conversationId);
@@ -46,11 +47,11 @@ class MessageService {
 
     // BUG-004: chỉ chủ hội thoại mới được xóa
     const conversation = await Conversation.findById(conversationId);
-    if (!conversation) throw new Error('Conversation not found');
+    if (!conversation) throw httpError(404, 'Conversation not found');
     const isParticipant = conversation.participants.some(
       p => p.toString() === userId.toString()
     );
-    if (!isParticipant) throw new Error('Unauthorized');
+    if (!isParticipant) throw httpError(403, 'Unauthorized');
 
     await Message.deleteMany({ conversation_id: conversationId });
     await Conversation.findByIdAndDelete(conversationId);
@@ -65,11 +66,11 @@ class MessageService {
 
     // BUG-009: chỉ participant của hội thoại mới được react
     const conversation = await Conversation.findById(message.conversation_id);
-    if (!conversation) throw new Error('Conversation not found');
+    if (!conversation) throw httpError(404, 'Conversation not found');
     const isParticipant = conversation.participants.some(
       p => p.toString() === userId.toString()
     );
-    if (!isParticipant) throw new Error('Unauthorized');
+    if (!isParticipant) throw httpError(403, 'Unauthorized');
 
     const existingReactionIndex = message.reactions.findIndex(r => r.user_id.toString() === userId.toString());
     
