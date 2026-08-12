@@ -124,6 +124,19 @@
 - ✅ Validate: `node --check` backend pass, `py_compile` AI pass, ESLint 0 errors, **`next build` pass toàn bộ routes**.
 - ✅ Commit + push (xem git log).
 
+### Session 6 — 2026-08-13 (chạy lại 3 service + test UI bằng Chrome CDP)
+- ✅ Khởi động lại 3 service: AI (8000, model loaded), Backend (5000), Frontend (3000 — **rebuild lại `next build` trước khi start**: build cũ lúc 00:22 thiếu fix profile/edit lúc 00:23).
+- ⚠️ **Phát hiện vấn đề quan trọng:** `next build` ở S5 chạy TRƯỚC khi code-review fix profile/edit → build đang serve là bản CŨ (initial-state-only) → form profile/edit rỗng. Sau khi rebuild + restart, form điền đúng username. **Bài học: phải rebuild sau mọi thay đổi source trước khi `next start`.**
+- ✅ Browser automation (browser-use) không khả dụng (thiếu `navigate_page`) → dùng **Chrome headless + CDP (chrome-remote-interface qua `ws`)** test UI thật: `logs/cdp-test.js` (gitignored).
+- ✅ **CDP UI test: 17/17 PASS** (mobile viewport 390x844):
+  1. **UI Register**: điền form #username/#email/#password → submit → redirect `/` + token + localStorage user + navbar đã đăng nhập (hết nút Bắt đầu/Đăng nhập, avatar initial đúng).
+  2. **BUG-042**: /messages mobile hiển thị placeholder/empty state (không màn hình trống) + có nội dung thật.
+  3. **BUG-033**: /profile/edit form KHÔNG rỗng — username input = user.username (regression S5 đã fix đúng).
+  4. **BUG-040**: /admin/users hiển thị bảng + pagination "Trang 1".
+- ✅ Xác nhận fix S5 đều nằm trong build mới (AdminPagination, "Bài đã đăng", "No conversations yet" trong chunks).
+- ✅ Backend log không có error trong lúc test; cả 3 service healthy (AI model_loaded, backend/frontend HTTP 200).
+- 📌 Không có source change mới trong session này (chỉ rebuild + test script); không cần commit mới.
+
 ## Ghi chú kỹ thuật quan trọng (đọc trước khi fix)
 - Backend entry: `app.js` (port 5000). Frontend: `frontend/` (Next.js, port 3000). AI: `ai_service/main.py` (port 8000).
 - **Auth hiện tại:** frontend dùng `/api/auth/*`. Refresh token nằm trong **httpOnly cookie** (đã cài cookie-parser, sameSite lax). Frontend KHÔNG còn lưu refreshToken trong localStorage. Cookie cũ từ trước fix sẽ hết hạn sau 7 ngày — user phải login lại 1 lần.
