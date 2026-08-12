@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { getUsers, changeRole, banUser, muteUser, resetScore } from '../../../services/admin.service';
+import AdminPagination from '../../../components/AdminPagination';
 
 const ROLE_COLORS = {
   ADMIN: { bg: 'rgba(124,58,237,0.2)', color: '#a78bfa', border: 'rgba(124,58,237,0.3)' },
@@ -24,17 +25,24 @@ export default function UsersPage() {
   const [filterStatus, setFilterStatus] = useState('ALL');
   const [actionLoading, setActionLoading] = useState(null);
   const [toast, setToast] = useState(null);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
   };
 
-  const fetchUsers = async () => {
-    setLoading(true);
+  // BUG-033: bỏ setLoading(true) đồng bộ trong effect-call (loading khởi tạo đã true)
+  const fetchUsers = async (targetPage = page) => {
     try {
-      const res = await getUsers();
+      const res = await getUsers(targetPage);
       setUsers(res.data || []);
+      if (res.pagination) {
+        setTotalPages(res.pagination.totalPages);
+        setTotal(res.pagination.total);
+      }
     } catch (error) {
       showToast('Không tải được danh sách người dùng', 'error');
     } finally {
@@ -42,14 +50,33 @@ export default function UsersPage() {
     }
   };
 
-  useEffect(() => { fetchUsers(); }, []);
+  // BUG-040: fetch lại khi đổi trang; BUG-033: inline async + ignore flag
+  useEffect(() => {
+    let ignore = false;
+    (async () => {
+      try {
+        const res = await getUsers(page);
+        if (ignore) return;
+        setUsers(res.data || []);
+        if (res.pagination) {
+          setTotalPages(res.pagination.totalPages);
+          setTotal(res.pagination.total);
+        }
+      } catch (error) {
+        if (!ignore) showToast('Không tải được danh sách người dùng', 'error');
+      } finally {
+        if (!ignore) setLoading(false);
+      }
+    })();
+    return () => { ignore = true; };
+  }, [page]);
 
   const handleRoleChange = async (id, role) => {
     setActionLoading(id + 'role');
     try {
       await changeRole(id, role);
       showToast('Cập nhật vai trò thành công');
-      fetchUsers();
+      fetchUsers(page);
     } catch {
       showToast('Không thể thay đổi vai trò', 'error');
     } finally {
@@ -66,7 +93,7 @@ export default function UsersPage() {
       if (action === 'MUTE') await muteUser(id);
       if (action === 'RESET') await resetScore(id);
       showToast(`Thực hiện thành công`);
-      fetchUsers();
+      fetchUsers(page);
     } catch {
       showToast(`Không thể thực hiện thao tác`, 'error');
     } finally {
@@ -167,6 +194,9 @@ export default function UsersPage() {
           })
         )}
       </div>
+
+      {/* BUG-040 */}
+      <AdminPagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} loading={loading} />
     </div>
   );
 }

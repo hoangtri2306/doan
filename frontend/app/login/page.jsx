@@ -54,7 +54,7 @@ function LeftPanel() {
           className="mb-2 text-4xl font-bold leading-tight"
           style={{ fontFamily: 'var(--playfair-font), Georgia, serif', opacity: visible ? 1 : 0, transition: 'opacity 0.4s ease' }}
         >
-          "{q.text}"
+          &ldquo;{q.text}&rdquo;
         </div>
         <div
           className="text-sm font-medium text-white/70"
@@ -92,12 +92,14 @@ export default function Login() {
   const { login } = useAuth();
   const router = useRouter();
 
+  // BUG-033: đọc query param — setTimeout(0) tránh setState đồng bộ trong effect
+  // (rule react-hooks/set-state-in-effect: setState đồng bộ trong effect gây cascading render)
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      const errorMsg = params.get('error');
-      if (errorMsg) setError(errorMsg);
-    }
+    if (typeof window === 'undefined') return;
+    const errorMsg = new URLSearchParams(window.location.search).get('error');
+    if (!errorMsg) return;
+    const t = setTimeout(() => setError(errorMsg), 0);
+    return () => clearTimeout(t);
   }, []);
 
   const handleSubmit = async (e) => {
@@ -228,7 +230,7 @@ export default function Login() {
           </form>
 
           <p className="mt-6 text-center text-sm text-text-secondary animate-fade-in-up delay-400">
-            Don't have an account?{' '}
+            Don&apos;t have an account?{' '}
             <Link href="/register" className="link-accent">
               Create one for free
             </Link>

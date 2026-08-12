@@ -2,6 +2,16 @@ const userRepository = require('../repositories/user.repo');
 const User = require('../models/User');
 const { invalidateStatus } = require('../utils/statusCache'); // BUG-027
 
+// BUG-040: pagination — nhận ?page=&limit=, trả thêm meta pagination.
+// Không truyền page/limit → trả toàn bộ (dashboard cần tổng số để tính stats).
+// LƯU Ý: phải là function ngoài class — Express gọi handler như function thường nên `this` undefined
+// (lỗi tương tự BUG-047: method extraction làm `this._paginationParams` crash 500).
+function getPaginationParams(req, defaultLimit = 20, maxLimit = 100) {
+  const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+  const limit = Math.min(maxLimit, Math.max(1, parseInt(req.query.limit, 10) || defaultLimit));
+  return { page, limit, skip: (page - 1) * limit };
+}
+
 class AdminController {
   async getViolations(req, res, next) {
     try {
@@ -29,8 +39,16 @@ class AdminController {
 
   async getUsers(req, res, next) {
     try {
-      const users = await User.find().select('-password').sort({ createdAt: -1 });
-      res.status(200).json({ success: true, message: 'Users retrieved', data: users });
+      const query = req.query.page || req.query.limit ? getPaginationParams(req) : null;
+      const baseQuery = User.find().select('-password').sort({ createdAt: -1 });
+      const users = query ? await baseQuery.skip(query.skip).limit(query.limit) : await baseQuery;
+      const total = query ? await User.countDocuments() : undefined;
+      res.status(200).json({
+        success: true,
+        message: 'Users retrieved',
+        data: users,
+        pagination: query ? { total, page: query.page, limit: query.limit, totalPages: Math.ceil(total / query.limit) } : undefined
+      });
     } catch (error) {
       next(error);
     }
@@ -39,6 +57,27 @@ class AdminController {
   async changeRole(req, res, next) {
     try {
       const { role } = req.body;
+      // BUG-038: validate role hợp lệ trước khi đổi
+      if (!['USER', 'MODERATOR', 'ADMIN'].includes(role)) {
+        return res.status(400).json({ success: false, message: 'Invalid role' });
+      }
+
+      const target = await User.findById(req.params.id);
+      if (!target) {
+        return res.status(404).json({ success: false, message: 'User not found' });
+      }
+
+      // BUG-038: chặn hạ quyền admin cuối cùng (tránh mất quyền quản trị hệ thống)
+      if (target.role === 'ADMIN' && role !== 'ADMIN') {
+        const adminCount = await User.countDocuments({ role: 'ADMIN', isDeleted: false });
+        if (adminCount <= 1) {
+          return res.status(400).json({
+            success: false,
+            message: 'Không thể hạ quyền admin cuối cùng của hệ thống'
+          });
+        }
+      }
+
       const user = await userRepository.update(req.params.id, { role });
       res.status(200).json({ success: true, message: 'Role updated', data: user });
     } catch (error) {
@@ -49,10 +88,18 @@ class AdminController {
   async getPosts(req, res, next) {
     try {
       const Post = require('../models/Post');
-      const posts = await Post.find()
+      const query = req.query.page || req.query.limit ? getPaginationParams(req) : null;
+      const baseQuery = Post.find()
         .populate('author', 'username email avatar')
         .sort({ createdAt: -1 });
-      res.status(200).json({ success: true, message: 'All posts retrieved', data: posts });
+      const posts = query ? await baseQuery.skip(query.skip).limit(query.limit) : await baseQuery;
+      const total = query ? await Post.countDocuments() : undefined;
+      res.status(200).json({
+        success: true,
+        message: 'All posts retrieved',
+        data: posts,
+        pagination: query ? { total, page: query.page, limit: query.limit, totalPages: Math.ceil(total / query.limit) } : undefined
+      });
     } catch (error) {
       next(error);
     }
@@ -103,11 +150,14 @@ class AdminController {
       const Report = require('../models/Report');
       const Post = require('../models/Post');
       const Comment = require('../models/Comment');
-      
-      const reports = await Report.find({ status: 'PENDING' })
+      const query = req.query.page || req.query.limit ? getPaginationParams(req) : null;
+
+      const baseQuery = Report.find({ status: 'PENDING' })
         .populate('reporter_id', 'username email')
         .sort({ createdAt: -1 });
-      
+      const reports = query ? await baseQuery.skip(query.skip).limit(query.limit) : await baseQuery;
+      const total = query ? await Report.countDocuments({ status: 'PENDING' }) : undefined;
+
       const enrichedReports = await Promise.all(reports.map(async (report) => {
         const reportObj = report.toObject();
         if (report.target_model === 'Post') {
@@ -120,7 +170,12 @@ class AdminController {
         return reportObj;
       }));
 
-      res.status(200).json({ success: true, message: 'Reports retrieved', data: enrichedReports });
+      res.status(200).json({
+        success: true,
+        message: 'Reports retrieved',
+        data: enrichedReports,
+        pagination: query ? { total, page: query.page, limit: query.limit, totalPages: Math.ceil(total / query.limit) } : undefined
+      });
     } catch (error) {
       next(error);
     }

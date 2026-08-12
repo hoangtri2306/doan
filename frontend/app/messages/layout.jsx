@@ -49,12 +49,17 @@ export default function MessagesLayout({ children }) {
     return other?.username?.toLowerCase().includes(search.toLowerCase());
   });
 
+  // BUG-042: trên mobile, khi KHÔNG có conversation nào để chọn → hiện placeholder thay vì màn hình trống.
+  // (aside w-full + main flex sẽ tràn màn hình nếu cả 2 hiện cùng lúc trên mobile.)
+  const hasConversations = conversations.length > 0;
+  const showListOnMobile = !params.id && (loading || hasConversations);
+
   return (
     <div className="flex h-[calc(100vh-80px)] overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
       {/* ── Sidebar: Conversations List ── */}
       <aside
         className={`flex w-full flex-col border-r border-border bg-surface md:w-[320px] md:flex-shrink-0 ${
-          params.id ? 'hidden md:flex' : 'flex'
+          params.id ? 'hidden md:flex' : showListOnMobile ? 'flex' : 'hidden md:flex'
         }`}
       >
         {/* Header */}
@@ -99,7 +104,7 @@ export default function MessagesLayout({ children }) {
                 <MessageSquare className="h-6 w-6 text-accent-text" strokeWidth={1.75} />
               </div>
               <p className="text-sm font-semibold text-text-primary">No conversations yet</p>
-              <p className="mt-1 text-xs text-text-tertiary">Visit someone's profile to start a chat.</p>
+              <p className="mt-1 text-xs text-text-tertiary">Visit someone&apos;s profile to start a chat.</p>
               <Link
                 href="/"
                 className="mt-4 rounded-lg bg-accent-subtle px-4 py-2 text-xs font-semibold text-accent-text transition-colors hover:bg-accent hover:text-white"
@@ -170,7 +175,8 @@ export default function MessagesLayout({ children }) {
       </aside>
 
       {/* ── Main: Chat Window ── */}
-      <main className={`flex flex-1 flex-col bg-surface ${!params.id ? 'hidden md:flex' : 'flex'}`}>
+      {/* BUG-042: main hiện trên mobile khi không có conversation nào (placeholder) */}
+      <main className={`flex flex-1 flex-col bg-surface ${!params.id && showListOnMobile ? 'hidden md:flex' : 'flex'}`}>
         {children}
       </main>
     </div>

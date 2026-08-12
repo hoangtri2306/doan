@@ -27,8 +27,8 @@ export default function ModerationQueue() {
     setTimeout(() => setToast(null), 3000);
   };
 
+  // BUG-033: bỏ setLoading(true) đồng bộ trong effect-call (loading khởi tạo đã true)
   const fetchQueue = async () => {
-    setLoading(true);
     try {
       const res = await getModerationQueue();
       setQueue(res.data || []);
@@ -39,7 +39,21 @@ export default function ModerationQueue() {
     }
   };
 
-  useEffect(() => { fetchQueue(); }, []);
+  // BUG-033: inline async trong effect + ignore flag (fetchQueue giữ cho event handlers)
+  useEffect(() => {
+    let ignore = false;
+    (async () => {
+      try {
+        const res = await getModerationQueue();
+        if (!ignore) setQueue(res.data || []);
+      } catch {
+        if (!ignore) showToast('Không tải được hàng đợi kiểm duyệt', 'error');
+      } finally {
+        if (!ignore) setLoading(false);
+      }
+    })();
+    return () => { ignore = true; };
+  }, []);
 
   const handleAction = async (action, id) => {
     setActionLoading(id + action);

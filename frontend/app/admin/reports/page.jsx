@@ -2,23 +2,31 @@
 
 import { useState, useEffect } from 'react';
 import { getReports, resolveReport } from '../../../services/admin.service';
+import AdminPagination from '../../../components/AdminPagination';
 
 export default function AdminReportsPage() {
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(null);
   const [toast, setToast] = useState(null);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 3000);
   };
 
-  const fetchReports = async () => {
-    setLoading(true);
+  // BUG-033: bỏ setLoading(true) đồng bộ trong effect-call (loading khởi tạo đã true)
+  const fetchReports = async (targetPage = page) => {
     try {
-      const res = await getReports();
+      const res = await getReports(targetPage);
       setReports(res.data || []);
+      if (res.pagination) {
+        setTotalPages(res.pagination.totalPages);
+        setTotal(res.pagination.total);
+      }
     } catch {
       showToast('Failed to load reports', 'error');
     } finally {
@@ -26,14 +34,33 @@ export default function AdminReportsPage() {
     }
   };
 
-  useEffect(() => { fetchReports(); }, []);
+  // BUG-040: fetch lại khi đổi trang; BUG-033: inline async + ignore flag
+  useEffect(() => {
+    let ignore = false;
+    (async () => {
+      try {
+        const res = await getReports(page);
+        if (ignore) return;
+        setReports(res.data || []);
+        if (res.pagination) {
+          setTotalPages(res.pagination.totalPages);
+          setTotal(res.pagination.total);
+        }
+      } catch {
+        if (!ignore) showToast('Failed to load reports', 'error');
+      } finally {
+        if (!ignore) setLoading(false);
+      }
+    })();
+    return () => { ignore = true; };
+  }, [page]);
 
   const handleResolve = async (id, action) => {
     setActionLoading(id);
     try {
       await resolveReport(id, action);
       showToast(action === 'HIDE' ? 'Content removed and report resolved' : 'Report dismissed');
-      fetchReports();
+      fetchReports(page);
     } catch {
       showToast('Failed to handle report', 'error');
     } finally {
@@ -59,7 +86,7 @@ export default function AdminReportsPage() {
 
       <div>
         <h2 className="text-xl font-bold text-white">Report Center</h2>
-        <p className="text-slate-500 text-sm mt-0.5">{reports.length} pending user reports</p>
+        <p className="text-slate-500 text-sm mt-0.5">{total || reports.length} pending user reports</p>
       </div>
 
       {loading ? (
@@ -90,7 +117,7 @@ export default function AdminReportsPage() {
                   )}
                   <div className="flex gap-2 items-start">
                     <p className="text-slate-500 text-xs whitespace-nowrap mt-0.5">Reason:</p>
-                    <p className="text-slate-300 text-sm italic">"{report.reason}"</p>
+                    <p className="text-slate-300 text-sm italic">&ldquo;{report.reason}&rdquo;</p>
                   </div>
                 </div>
                 <div className="flex flex-col gap-2 min-w-[140px]">
@@ -124,6 +151,9 @@ export default function AdminReportsPage() {
           })}
         </div>
       )}
+
+      {/* BUG-040 */}
+      <AdminPagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} loading={loading} />
     </div>
   );
 }

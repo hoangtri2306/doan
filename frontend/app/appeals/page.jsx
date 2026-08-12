@@ -73,7 +73,7 @@ function StatusCard({ appeal }) {
         {/* Lý do kháng cáo của user */}
         <div className="rounded-lg p-4 bg-bg-subtle border border-border">
           <p className="text-xs font-semibold text-accent-text uppercase tracking-wider mb-2">🗣️ Lý do kháng cáo của bạn</p>
-          <p className="text-sm text-text-primary italic">"{appeal.reason}"</p>
+          <p className="text-sm text-text-primary italic">&ldquo;{appeal.reason}&rdquo;</p>
         </div>
 
         {/* Kết quả (nếu đã xử lý) */}

@@ -25,23 +25,27 @@ export default function EditProfile() {
   const router = useRouter();
   const inputRef = useRef(null);
 
-  const [avatar, setAvatar] = useState('');
-  const [avatarInput, setAvatarInput] = useState('');
-  const [bio, setBio] = useState('');
-  const [username, setUsername] = useState('');
+  const [avatar, setAvatar] = useState(user?.avatar || '');
+  const [avatarInput, setAvatarInput] = useState(user?.avatar || '');
+  const [bio, setBio] = useState(user?.bio || '');
+  const [username, setUsername] = useState(user?.username || '');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [imgError, setImgError] = useState(false);
 
-  useEffect(() => {
-    if (user) {
-      setAvatar(user.avatar || '');
-      setAvatarInput(user.avatar || '');
-      setBio(user.bio || '');
-      setUsername(user.username || '');
-    }
-  }, [user]);
+  // BUG-033: sync user→form bằng pattern "adjusting state during render" của React
+  // (thay cho useEffect cũ — tránh rule react-hooks/set-state-in-effect).
+  // Quan trọng: user load async (auth context), nên KHÔNG chỉ dùng initial state
+  // — phải cập nhật lại khi user xuất hiện (review S5 phát hiện regression).
+  const [prevUser, setPrevUser] = useState(user);
+  if (user !== prevUser) {
+    setPrevUser(user);
+    setAvatar(user?.avatar || '');
+    setAvatarInput(user?.avatar || '');
+    setBio(user?.bio || '');
+    setUsername(user?.username || '');
+  }
 
   useEffect(() => {
     if (!loading && !isAuthenticated) router.push('/login');

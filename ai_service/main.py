@@ -9,6 +9,7 @@ import os
 import sys
 import torch
 import logging
+from contextlib import asynccontextmanager
 from pathlib import Path
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -35,20 +36,6 @@ TOXIC_THRESHOLD = 0.5   # LABEL_0 (L0)
 # BUG-016: giới hạn độ dài text tránh DoS (model chỉ nhận 512 tokens, phần dư vô ích)
 MAX_TEXT_LENGTH = 10000
 
-# ── App ───────────────────────────────────────────────────────────────────────
-app = FastAPI(
-    title="Content Moderation AI Service",
-    description="XLM-Roberta based spam & toxicity classifier. LABEL_0=TOXIC, LABEL_1=SPAM",
-    version="1.0.0"
-)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:5000", "http://localhost:3000"],
-    allow_methods=["POST", "GET"],
-    allow_headers=["*"],
-)
-
 # ── Global model state ────────────────────────────────────────────────────────
 tokenizer = None
 model = None
@@ -64,8 +51,7 @@ class AnalyzeResponse(BaseModel):
     label: str
     raw_scores: dict
 
-# ── Startup ───────────────────────────────────────────────────────────────────
-@app.on_event("startup")
+# ── Startup (BUG-034: dùng lifespan thay vì @app.on_event deprecated) ─────────
 async def load_model():
     global tokenizer, model, device
 
@@ -91,6 +77,29 @@ async def load_model():
     logger.info("Model loaded successfully!")
     logger.info(f"num_labels: {model.config.num_labels}")
     logger.info("Label mapping: LABEL_0=TOXIC, LABEL_1=SPAM")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """BUG-034: thay thế @app.on_event("startup") — cú pháp hiện đại của FastAPI."""
+    await load_model()
+    yield
+
+
+# ── App ───────────────────────────────────────────────────────────────────────
+app = FastAPI(
+    title="Content Moderation AI Service",
+    description="XLM-Roberta based spam & toxicity classifier. LABEL_0=TOXIC, LABEL_1=SPAM",
+    version="1.0.0",
+    lifespan=lifespan
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5000", "http://localhost:3000"],
+    allow_methods=["POST", "GET"],
+    allow_headers=["*"],
+)
 
 # ── Routes ────────────────────────────────────────────────────────────────────
 @app.get("/health")

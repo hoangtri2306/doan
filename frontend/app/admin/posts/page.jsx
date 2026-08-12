@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { getAllPosts, hidePost, unhidePost, markSensitive, unmarkSensitive, deletePostByAdmin } from '../../../services/admin.service';
+import AdminPagination from '../../../components/AdminPagination';
 import Link from 'next/link';
 
 const VISIBILITY_STYLE = {
@@ -16,17 +17,24 @@ export default function AdminPostsPage() {
   const [search, setSearch] = useState('');
   const [actionLoading, setActionLoading] = useState(null);
   const [toast, setToast] = useState(null);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 3000);
   };
 
-  const fetchPosts = async () => {
-    setLoading(true);
+  // BUG-033: bỏ setLoading(true) đồng bộ trong effect-call (loading khởi tạo đã true)
+  const fetchPosts = async (targetPage = page) => {
     try {
-      const res = await getAllPosts();
+      const res = await getAllPosts(targetPage);
       setPosts(res.data || []);
+      if (res.pagination) {
+        setTotalPages(res.pagination.totalPages);
+        setTotal(res.pagination.total);
+      }
     } catch {
       showToast('Failed to load posts', 'error');
     } finally {
@@ -34,7 +42,26 @@ export default function AdminPostsPage() {
     }
   };
 
-  useEffect(() => { fetchPosts(); }, []);
+  // BUG-040: fetch lại khi đổi trang; BUG-033: inline async + ignore flag
+  useEffect(() => {
+    let ignore = false;
+    (async () => {
+      try {
+        const res = await getAllPosts(page);
+        if (ignore) return;
+        setPosts(res.data || []);
+        if (res.pagination) {
+          setTotalPages(res.pagination.totalPages);
+          setTotal(res.pagination.total);
+        }
+      } catch {
+        if (!ignore) showToast('Failed to load posts', 'error');
+      } finally {
+        if (!ignore) setLoading(false);
+      }
+    })();
+    return () => { ignore = true; };
+  }, [page]);
 
   const handleHide = async (id) => {
     if (!confirm(`Hide this post?`)) return;
@@ -42,7 +69,7 @@ export default function AdminPostsPage() {
     try {
       await hidePost(id);
       showToast('Post hidden successfully');
-      fetchPosts();
+      fetchPosts(page);
     } catch {
       showToast('Failed to hide post', 'error');
     } finally {
@@ -56,7 +83,7 @@ export default function AdminPostsPage() {
     try {
       await unhidePost(id);
       showToast('Post restored successfully');
-      fetchPosts();
+      fetchPosts(page);
     } catch {
       showToast('Failed to restore post', 'error');
     } finally {
@@ -74,7 +101,7 @@ export default function AdminPostsPage() {
         await markSensitive(id);
         showToast('Post marked as sensitive');
       }
-      fetchPosts();
+      fetchPosts(page);
     } catch {
       showToast('Action failed', 'error');
     } finally {
@@ -88,7 +115,7 @@ export default function AdminPostsPage() {
     try {
       await deletePostByAdmin(id);
       showToast('Xóa bài viết thành công');
-      fetchPosts();
+      fetchPosts(page);
     } catch {
       showToast('Xóa bài viết thất bại', 'error');
     } finally {
@@ -173,6 +200,9 @@ export default function AdminPostsPage() {
           })
         )}
       </div>
+
+      {/* BUG-040 */}
+      <AdminPagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} loading={loading} />
     </div>
   );
 }

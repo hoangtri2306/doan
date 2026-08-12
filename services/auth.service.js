@@ -6,28 +6,46 @@ class AuthService {
   async register(data) {
     // Lưu ý: KHÔNG đọc field `role` từ client (BUG-002)
     const { email, password, avatar, bio, username } = data;
-    
-    // Check if user already exists
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      throw new Error('User already exists');
-    }
 
     // Hash the password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Create the new user (role is ALWAYS 'USER' — never trust client input, see BUG-002)
-    const newUser = new User({
-      email,
-      username: username || email.split('@')[0] + Math.floor(Math.random() * 10000),
-      password: hashedPassword,
-      role: 'USER',
-      avatar,
-      bio
-    });
+    // BUG-037: trả message chung (không tiết lộ email đã tồn tại → chống user enumeration)
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      throw new Error('Registration failed');
+    }
 
-    await newUser.save();
+    // BUG-035: username random dễ trùng → retry với suffix khác tối đa 3 lần
+    // (nếu username user tự chọn bị trùng, giữ username đó + thêm suffix thay vì bỏ hẳn)
+    let newUser = null;
+    for (let attempt = 0; attempt < 3 && !newUser; attempt++) {
+      const base = username || email.split('@')[0];
+      const suffix = Math.random().toString(36).slice(2, 8);
+      const candidateUsername = attempt === 0 ? base : `${base}_${suffix}`;
+
+      newUser = new User({
+        email,
+        username: candidateUsername,
+        password: hashedPassword,
+        role: 'USER', // luôn 'USER' — xem BUG-002
+        avatar,
+        bio
+      });
+
+      try {
+        await newUser.save();
+      } catch (err) {
+        newUser = null;
+        // E11000: email/username trùng (race) → thử lại với suffix khác
+        if (err.code !== 11000) throw err;
+      }
+    }
+
+    if (!newUser) {
+      throw new Error('Registration failed');
+    }
 
     // Return user without password, in the same shape as login (BUG-012)
     const userToReturn = this._publicUser(newUser);

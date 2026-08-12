@@ -22,8 +22,8 @@ export default function ViolationsPage() {
     setTimeout(() => setToast(null), 3000);
   };
 
+  // BUG-033: bỏ setLoading(true) đồng bộ trong effect-call (loading khởi tạo đã true)
   const fetchViolations = async () => {
-    setLoading(true);
     try {
       const res = await getViolations();
       setUsers(res.data || []);
@@ -34,7 +34,21 @@ export default function ViolationsPage() {
     }
   };
 
-  useEffect(() => { fetchViolations(); }, []);
+  // BUG-033: inline async trong effect + ignore flag (fetchViolations giữ cho event handlers)
+  useEffect(() => {
+    let ignore = false;
+    (async () => {
+      try {
+        const res = await getViolations();
+        if (!ignore) setUsers(res.data || []);
+      } catch {
+        if (!ignore) showToast('Không tải được dữ liệu vi phạm', 'error');
+      } finally {
+        if (!ignore) setLoading(false);
+      }
+    })();
+    return () => { ignore = true; };
+  }, []);
 
   const handleAction = async (action, id) => {
     setActionLoading(id + action);

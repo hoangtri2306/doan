@@ -14,19 +14,7 @@ export default function NotificationBell() {
   const [loading, setLoading] = useState(false);
   const [appealTarget, setAppealTarget] = useState(null); // { entity_id, entity_model, ai_label, scores }
 
-  useEffect(() => {
-    if (isOpen) fetchNotifications();
-  }, [isOpen]);
-
-  // Click ngoài để đóng
-  useEffect(() => {
-    const handler = (e) => {
-      if (!e.target.closest('#notif-bell-wrapper')) setIsOpen(false);
-    };
-    if (isOpen) document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [isOpen]);
-
+  // BUG-033: khai báo trước effect để không bị "accessed before it is declared"
   const fetchNotifications = async () => {
     try {
       setLoading(true);
@@ -40,6 +28,35 @@ export default function NotificationBell() {
       setLoading(false);
     }
   };
+
+  // BUG-033: inline async + ignore flag (fetchNotifications giữ cho onSuccess)
+  useEffect(() => {
+    if (!isOpen) return;
+    let ignore = false;
+    (async () => {
+      try {
+        const res = await api.get('/notifications');
+        if (ignore) return;
+        setNotifications(res.data.data);
+        const unread = res.data.data.filter(n => !n.is_read).length;
+        setUnreadCount(unread);
+      } catch (error) {
+        if (!ignore) console.error(error);
+      } finally {
+        if (!ignore) setLoading(false);
+      }
+    })();
+    return () => { ignore = true; };
+  }, [isOpen]);
+
+  // Click ngoài để đóng
+  useEffect(() => {
+    const handler = (e) => {
+      if (!e.target.closest('#notif-bell-wrapper')) setIsOpen(false);
+    };
+    if (isOpen) document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [isOpen]);
 
   const handleMarkAsRead = async (id) => {
     try {

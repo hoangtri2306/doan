@@ -39,8 +39,25 @@ export default function PostDetail() {
     }
   };
 
+  // BUG-033: inline async + ignore flag (fetchPostAndComments giữ cho onReplyAdded/onSuccess)
   useEffect(() => {
-    fetchPostAndComments();
+    let ignore = false;
+    (async () => {
+      try {
+        const { data: postData } = await getPostBySlug(params.slug);
+        if (ignore) return;
+        setPost(postData);
+        if (postData?._id) {
+          const { data: commentData } = await getComments(postData._id);
+          if (!ignore) setComments(commentData || []);
+        }
+      } catch (error) {
+        if (!ignore) console.error(error);
+      } finally {
+        if (!ignore) setLoading(false);
+      }
+    })();
+    return () => { ignore = true; };
   }, [params.slug]);
 
   if (loading) return <div className="text-center py-20 text-text-secondary">Loading post...</div>;

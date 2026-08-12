@@ -5,8 +5,18 @@ export const getViolations = async () => {
   return data;
 };
 
-export const getUsers = async () => {
-  const { data } = await api.get('/admin/users');
+// BUG-040: pagination — truyền page/limit để chỉ lấy 1 trang
+const paginate = (page, limit = 20) => {
+  const params = {};
+  if (page) {
+    params.page = page;
+    params.limit = limit;
+  }
+  return params;
+};
+
+export const getUsers = async (page) => {
+  const { data } = await api.get('/admin/users', { params: paginate(page) });
   return data;
 };
 
@@ -15,8 +25,8 @@ export const changeRole = async (id, role) => {
   return data;
 };
 
-export const getAllPosts = async () => {
-  const { data } = await api.get('/admin/posts');
+export const getAllPosts = async (page) => {
+  const { data } = await api.get('/admin/posts', { params: paginate(page) });
   return data;
 };
 
@@ -45,8 +55,8 @@ export const deletePostByAdmin = async (id) => {
   return data;
 };
 
-export const getReports = async () => {
-  const { data } = await api.get('/admin/reports');
+export const getReports = async (page) => {
+  const { data } = await api.get('/admin/reports', { params: paginate(page) });
   return data;
 };
 

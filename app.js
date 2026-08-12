@@ -30,7 +30,8 @@ app.use(cookieParser());
 // BUG-019: nâng giới hạn JSON body (post dài có content_html lớn qua update)
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: true, limit: '5mb' }));
-app.use(morgan('dev'));
+// BUG-041: log chi tiết ('dev') chỉ dùng trong development; production dùng 'combined' (ít rò rỉ, chuẩn access log)
+app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 
 // Serve static files from uploads folder
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));

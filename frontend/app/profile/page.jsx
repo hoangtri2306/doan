@@ -126,8 +126,9 @@ export default function Profile() {
     })();
   }, [isAuthenticated, countsLoaded]);
 
+  // BUG-033: bỏ setFetching(true) đồng bộ trong effect-call (fetching khởi tạo đã true);
+  // tab switch tự setFetching trong event handler
   const fetchData = async (tab) => {
-    setFetching(true);
     try {
       const { data } = tab === 'stories' ? await getMyPosts() : await getBookmarkedPosts();
       setPosts(data || []);
@@ -138,9 +139,27 @@ export default function Profile() {
     }
   };
 
+  // BUG-033: inline async + ignore flag (fetchData giữ cho handleTabChange)
   useEffect(() => {
-    if (isAuthenticated) fetchData(activeTab);
+    if (!isAuthenticated) return;
+    let ignore = false;
+    (async () => {
+      try {
+        const { data } = activeTab === 'stories' ? await getMyPosts() : await getBookmarkedPosts();
+        if (!ignore) setPosts(data || []);
+      } catch (err) {
+        if (!ignore) console.error(`Failed to fetch ${activeTab}:`, err);
+      } finally {
+        if (!ignore) setFetching(false);
+      }
+    })();
+    return () => { ignore = true; };
   }, [isAuthenticated, activeTab]);
+
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    setFetching(true);
+  };
 
   if (loading || !isAuthenticated) return null;
 
@@ -259,7 +278,7 @@ export default function Profile() {
           ].map(({ key, label, count }) => (
             <button
               key={key}
-              onClick={() => setActiveTab(key)}
+              onClick={() => handleTabChange(key)}
               className={`focus-ring relative flex items-center gap-2 px-1 pb-3 mr-6 text-sm font-medium transition-all ${
                 activeTab === key
                   ? 'text-text-primary'

@@ -41,8 +41,8 @@ export default function AdminAppealsPage() {
     setTimeout(() => setToast(null), 3500);
   };
 
+  // BUG-033: bỏ setLoading(true) đồng bộ trong effect-call (loading khởi tạo đã true)
   const fetchAppeals = async () => {
-    setLoading(true);
     try {
       const res = filter === 'PENDING' ? await getPendingAppeals() : await getAllAppeals();
       setAppeals(res.data || []);
@@ -53,7 +53,22 @@ export default function AdminAppealsPage() {
     }
   };
 
-  useEffect(() => { fetchAppeals(); }, [filter]);
+  // BUG-033: inline async trong effect + ignore flag (pattern được React khuyến nghị,
+  // tránh rule react-hooks/set-state-in-effect — fetchAppeals giữ cho event handlers)
+  useEffect(() => {
+    let ignore = false;
+    (async () => {
+      try {
+        const res = filter === 'PENDING' ? await getPendingAppeals() : await getAllAppeals();
+        if (!ignore) setAppeals(res.data || []);
+      } catch {
+        if (!ignore) showToast('Không thể tải danh sách kháng cáo', 'error');
+      } finally {
+        if (!ignore) setLoading(false);
+      }
+    })();
+    return () => { ignore = true; };
+  }, [filter]);
 
   const handleApprove = async (id) => {
     setActionLoading(id + 'approve');
@@ -178,7 +193,7 @@ export default function AdminAppealsPage() {
               <div className="p-3 rounded-xl text-sm"
                 style={{ background: 'rgba(124,58,237,0.08)', border: '1px solid rgba(124,58,237,0.2)' }}>
                 <p className="text-xs text-violet-400 mb-1 uppercase font-bold tracking-wider">Lý do kháng cáo:</p>
-                <p className="text-slate-200 italic">"{appeal.reason}"</p>
+                <p className="text-slate-200 italic">&ldquo;{appeal.reason}&rdquo;</p>
               </div>
 
               {/* Admin note + actions (chỉ hiện khi PENDING) */}
