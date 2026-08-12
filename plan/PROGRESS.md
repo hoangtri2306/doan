@@ -51,7 +51,7 @@
 | BUG-042 | Low | P3 | ⏳ DEFERRED | — | messages mobile |
 | BUG-043 | Low | P3 | ⏳ DEFERRED | — | package.json main |
 | BUG-044 | Low | P3 | ⏳ DEFERRED | — | typo "Bài đă đăng" |
-| Dependency | — | P3 | ⏳ DEFERRED | — | `npm audit fix` sau khi code ổn định |
+| Dependency | — | P3 | ✅ DONE | S2 | `npm audit fix`: backend 0 vulns; frontend nâng next 16.2.4→^16.3.0, axios lên 1.18+, còn 0 vulns. `next build` pass toàn bộ routes |
 
 ## Session log
 
@@ -74,6 +74,12 @@
   - `sanitize.js`: scheme `data:` chỉ còn cho img (allowedSchemesByTag).
   - `api.js`: skip refresh cho các endpoint auth (login/register/refresh) — giữ thông báo lỗi login.
   - `useSocket.js`: reset socket state khi cleanup.
+### Session 2 — 2026-08-12 (vá dependency)
+- ✅ `npm audit fix` backend: **0 vulnerabilities** (multer, socket.io-parser, ws, mongoose, morgan, qs... đã vá qua lockfile).
+- ✅ `npm audit fix` frontend + nâng `next` 16.2.4 → `^16.3.0` (fix SSRF/DoS/middleware-bypass của next, postcss, sharp): **0 vulnerabilities**.
+- ✅ Validate: `node --check` backend pass, eslint không có lỗi mới (23 errors pre-existing = BUG-033), **`next build` pass toàn bộ 20 routes**.
+- ✅ Commit + push: `npm audit fix` + cập nhật PROGRESS.md.
+
 - ⏳ Còn lại 15 DEFERRED (P2 nâng cao + P3) — xem bảng trên.
 - **Bước tiếp theo cho session 2:** đọc CLAUDE.md → làm các bug DEFERRED ưu tiên: BUG-018 (gộp auth), BUG-022 (comment tree), BUG-024 (conversation race), BUG-027 (checkStatus cache), BUG-017 (aggregate), rồi tới P3.
 
