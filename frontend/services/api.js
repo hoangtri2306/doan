@@ -44,7 +44,7 @@ api.interceptors.response.use(
 
     // Không refresh khi chính bản thân các endpoint auth báo 401 (login sai mật khẩu v.v.)
     // — tránh redirect lặp làm mất thông báo lỗi.
-    const AUTH_PATHS = ['/auth/login', '/auth/register', '/auth/refresh', '/users/login', '/users/register', '/users/refresh'];
+    const AUTH_PATHS = ['/auth/login', '/auth/register', '/auth/refresh']; // BUG-018: auth tập trung /api/auth/*
     const requestUrl = originalRequest?.url || '';
     if (AUTH_PATHS.some(p => requestUrl.includes(p))) {
       return Promise.reject(error);

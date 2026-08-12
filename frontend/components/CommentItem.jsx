@@ -10,8 +10,18 @@ export default function CommentItem({ comment, onReplyAdded }) {
   const [revealed, setRevealed] = useState(false);
   const { isAuthenticated } = useAuth();
 
-  // is_hidden: bị ẩn hoàn toàn → không render
-  if (comment.is_hidden) return null;
+  // BUG-022: comment bị ẩn (AI/Admin) → hiển thị placeholder thay vì return null
+  // (return null làm reply của comment ẩn mất cha, cây comment bị vỡ).
+  // Không cho trả lời/báo cáo vào comment ẩn.
+  if (comment.is_hidden) {
+    return (
+      <div className={`mt-4 border-l-2 border-border pl-4 ${comment.depth > 0 ? 'ml-4' : ''}`}>
+        <div className="mt-1 bg-bg-subtle p-2.5 rounded-lg border border-border">
+          <p className="text-xs text-text-secondary italic">Bình luận đã bị ẩn do vi phạm tiêu chuẩn cộng đồng.</p>
+        </div>
+      </div>
+    );
+  }
 
   const isToxic = comment.label === 'TOXIC';
   const showSensitive = comment.is_sensitive && !revealed;

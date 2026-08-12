@@ -3,6 +3,7 @@ const interactionRepository = require('../repositories/interaction.repo');
 const Post = require('../models/Post');
 const { sanitizeContent } = require('../utils/sanitize');
 const { httpError } = require('../utils/httpError');
+const { invalidateStatus } = require('../utils/statusCache'); // BUG-027
 
 class PostService {
   async createPost(user_id, data) {
@@ -253,6 +254,7 @@ class PostService {
       }
 
       await userRepository.update(user_id, { spamCount, toxicCount, violationScore, status });
+      invalidateStatus(user_id); // BUG-027: status có thể đổi (WARNING/BANNED) → xóa cache
     }
 
     // Gửi thông báo hệ thống cho user kèm preview nội dung

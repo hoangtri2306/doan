@@ -1,5 +1,6 @@
 const userRepository = require('../repositories/user.repo');
 const User = require('../models/User');
+const { invalidateStatus } = require('../utils/statusCache'); // BUG-027
 
 class AdminController {
   async getViolations(req, res, next) {
@@ -176,6 +177,7 @@ class AdminController {
   async muteUser(req, res, next) {
     try {
       const user = await userRepository.update(req.params.id, { status: 'MUTED' });
+      invalidateStatus(req.params.id); // BUG-027: xóa cache status
       res.status(200).json({ success: true, message: 'User muted', data: user });
     } catch (error) {
       next(error);
@@ -185,6 +187,7 @@ class AdminController {
   async banUser(req, res, next) {
     try {
       const user = await userRepository.update(req.params.id, { status: 'BANNED' });
+      invalidateStatus(req.params.id); // BUG-027: xóa cache status
       res.status(200).json({ success: true, message: 'User banned', data: user });
     } catch (error) {
       next(error);
@@ -199,6 +202,7 @@ class AdminController {
         violationScore: 0,
         status: 'ACTIVE'
       });
+      invalidateStatus(req.params.id); // BUG-027: xóa cache status
       res.status(200).json({ success: true, message: 'Score reset', data: user });
     } catch (error) {
       next(error);

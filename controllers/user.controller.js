@@ -1,81 +1,9 @@
 const userService = require('../services/user.service');
 const followService = require('../services/follow.service');
 
+// BUG-018: register/login/refreshToken đã được gộp về controllers/auth.controller.js + services/auth.service.js
+// (xem routes/auth.routes.js). user.controller chỉ xử lý profile/user data.
 class UserController {
-  async register(req, res, next) {
-    try {
-      const data = await userService.register(req.body);
-      
-      // Send refresh token as HTTP Only cookie (BUG-012: sameSite lax)
-      res.cookie('refreshToken', data.tokens.refreshToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
-      });
-
-      res.status(201).json({
-        success: true,
-        message: 'User registered successfully',
-        data: {
-          user: data.user,
-          accessToken: data.tokens.accessToken
-        }
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  async login(req, res, next) {
-    try {
-      const data = await userService.login(req.body);
-
-      res.cookie('refreshToken', data.tokens.refreshToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
-      });
-
-      res.status(200).json({
-        success: true,
-        message: 'Login successful',
-        data: {
-          user: data.user,
-          accessToken: data.tokens.accessToken
-        }
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  async refreshToken(req, res, next) {
-    try {
-      const token = req.cookies?.refreshToken || req.body.refreshToken;
-      if (!token) {
-        return res.status(401).json({ success: false, message: 'Refresh token required', data: null });
-      }
-
-      const data = await userService.refreshToken(token);
-
-      res.cookie('refreshToken', data.tokens.refreshToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
-      });
-
-      res.status(200).json({
-        success: true,
-        message: 'Token refreshed',
-        data: { accessToken: data.tokens.accessToken }
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
-
   async logout(req, res, next) {
     try {
       res.clearCookie('refreshToken');

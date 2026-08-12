@@ -2,6 +2,7 @@ const commentRepository = require('../repositories/comment.repo');
 const moderationRepository = require('../repositories/moderation.repo');
 const userRepository = require('../repositories/user.repo');
 const aiService = require('./ai.service');
+const { invalidateStatus } = require('../utils/statusCache'); // BUG-027
 
 class CommentService {
   async createComment(user_id, data) {
@@ -99,6 +100,7 @@ class CommentService {
         }
 
         await userRepository.update(user_id, { spamCount, toxicCount, violationScore, status });
+        invalidateStatus(user_id); // BUG-027: status có thể đổi (WARNING/BANNED) → xóa cache
       }
 
       // Gửi thông báo hệ thống cho user

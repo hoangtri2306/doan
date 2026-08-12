@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const userRepository = require('../repositories/user.repo');
+const { getCachedStatus, setCachedStatus } = require('../utils/statusCache'); // BUG-027
 
 const authMiddleware = (req, res, next) => {
   try {
@@ -79,22 +80,29 @@ const checkStatus = async (req, res, next) => {
       });
     }
 
-    const user = await userRepository.findById(req.user.id);
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found'
-      });
+    // BUG-027: cache TTL 30s — status đổi hiếm, không cần query DB mỗi request.
+    // Khi admin/auto thay đổi status, invalidateStatus() được gọi ngay tại nơi ghi.
+    let status = getCachedStatus(req.user.id);
+    if (status === undefined) {
+      const user = await userRepository.findById(req.user.id);
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'User not found'
+        });
+      }
+      status = user.status;
+      setCachedStatus(req.user.id, status);
     }
 
-    if (user.status === 'BANNED') {
+    if (status === 'BANNED') {
       return res.status(403).json({
         success: false,
         message: 'Tài khoản của bạn đã bị khóa.'
       });
     }
 
-    if (user.status === 'MUTED') {
+    if (status === 'MUTED') {
       const writeMethods = ['POST', 'PUT', 'DELETE', 'PATCH'];
       if (writeMethods.includes(req.method)) {
         return res.status(403).json({

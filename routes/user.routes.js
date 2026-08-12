@@ -2,11 +2,9 @@ const express = require('express');
 const router = express.Router();
 const userController = require('../controllers/user.controller');
 const { authenticate, optionalAuthenticate, checkStatus } = require('../middlewares/auth.middleware');
-const { authLimiter } = require('../middlewares/rateLimit.middleware'); // BUG-011
 
-router.post('/register', authLimiter, userController.register);
-router.post('/login', authLimiter, userController.login);
-router.post('/refresh', authLimiter, userController.refreshToken);
+// BUG-018: auth tập trung vào /api/auth/* (auth.routes.js).
+// user.routes chỉ giữ các endpoint profile/user — không còn register/login/refresh trùng lặp.
 router.post('/logout', authenticate, userController.logout);
 router.put('/profile', authenticate, checkStatus, userController.updateProfile);
 router.get('/me', authenticate, checkStatus, userController.getMe);
