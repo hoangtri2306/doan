@@ -24,16 +24,16 @@
 | BUG-015 | High | P1 | ✅ DONE | S1 | xử lý tags dạng array |
 | BUG-016 | High | P1 | ✅ DONE | S1 | giới hạn MAX_TEXT_LENGTH=10000 trong /analyze |
 | BUG-017 | Medium | P2 | 🔶 PARTIAL | S1 | Đã song song hóa getPost/getPostBySlug; aggregation $group batch còn DEFERRED |
-| BUG-018 | Medium | P2 | ⏳ DEFERRED | — | Refactor gộp 2 hệ auth — session riêng |
+| BUG-018 | Medium | P2 | ✅ DONE | S4 | Gộp auth về /api/auth/*: bỏ /users/register|login|refresh, xóa code chết user.controller/user.service, dọn AUTH_PATHS frontend |
 | BUG-019 | Medium | P2 | ✅ DONE | S1 | maxlength Post/Comment/Message + json limit 5mb |
 | BUG-020 | Medium | P2 | ✅ DONE | S1 | helmet (tắt CSP) + cookie sameSite lax |
 | BUG-021 | Medium | P2 | ✅ DONE | S1 | production không lộ message lỗi nội bộ |
-| BUG-022 | Medium | P2 | ⏳ DEFERRED | — | Comment tree pagination — session riêng |
+| BUG-022 | Medium | P2 | ✅ DONE | S4 | Comment ẩn vẫn trả về (content=null, hiddenByModeration) để cây không vỡ; frontend render placeholder thay return null |
 | BUG-023 | Medium | P2 | ✅ DONE | S1 | appeal check ownership target |
-| BUG-024 | Medium | P2 | ⏳ DEFERRED | — | Conversation race — session riêng |
+| BUG-024 | Medium | P2 | ✅ DONE | S4 | participant_key unique (partial index cho doc cũ) + retry E11000 + dedupe conversations cũ trước khi build index |
 | BUG-025 | Medium | P2 | ✅ DONE | S1 | resolveReport ẩn comment (không xóa) + ghi ModerationLog |
 | BUG-026 | Medium | P2 | ✅ DONE | S1 | thêm compound indexes 6 models |
-| BUG-027 | Medium | P2 | ⏳ DEFERRED | — | checkStatus cache — session riêng |
+| BUG-027 | Medium | P2 | ✅ DONE | S4 | utils/statusCache.js TTL 30s; checkStatus dùng cache; invalidate khi admin ban/mute/reset + auto-status post/comment |
 | BUG-028 | Medium | P2 | ✅ DONE | S1 | validate target tồn tại + chặn REPOST qua interact |
 | BUG-029 | Medium | P2 | ✅ DONE | S1 | URL relative /uploads/... |
 | BUG-030 | Medium | P2 | ✅ DONE | S1 | auth.login/refresh check BANNED + checkStatus thêm vào 5 route |
@@ -93,6 +93,16 @@
 
 - ⏳ Còn lại 15 DEFERRED (P2 nâng cao + P3) — xem bảng trên.
 - **Bước tiếp theo cho session 2:** đọc CLAUDE.md → làm các bug DEFERRED ưu tiên: BUG-018 (gộp auth), BUG-022 (comment tree), BUG-024 (conversation race), BUG-027 (checkStatus cache), BUG-017 (aggregate), rồi tới P3.
+
+### Session 4 — 2026-08-12 (fix 4 bug DEFERRED P2)
+- ✅ **BUG-018** — gộp 2 hệ auth: bỏ `/users/register|login|refresh` (frontend đã dùng `/api/auth/*` từ S1), xóa `register/login/refreshToken/_generateTokens` khỏi `user.controller.js` + `user.service.js`, dọn AUTH_PATHS trong `frontend/services/api.js`. Endpoint cũ giờ trả 404.
+- ✅ **BUG-022** — comment tree: `comment.repo.findByPostId` không còn filter `is_hidden:false` (reply của comment ẩn từng bị đẩy lên root → cây vỡ). Comment ẩn trả về với `content: null` + `hiddenByModeration: true` (không leak nội dung SPAM/TOXIC); `CommentItem.jsx` render placeholder "Bình luận đã bị ẩn..." thay vì `return null` (vốn cũng làm mất cha của reply).
+- ✅ **BUG-024** — conversation race: thêm `participant_key` (participants đã sort, nối `:`) với **partial unique index** (`participant_key: {$exists:true}`) — bắt buộc vì conversations cũ có key null khiến unique thường fail khi build; `findOrCreate` dùng key + retry E11000 + backfill key cho conversation cũ + fallback tìm theo participants array.
+  - ⚠️ Trong lúc test phát hiện DB đã có 2 conversation trùng key (tạo khi index chưa có) → chạy `logs/dedupe-conversations.js` gộp trước khi sync index. Script hữu ích: `logs/dedupe-conversations.js`, `logs/sync-index.js` (đều trong logs/ — gitignored).
+- ✅ **BUG-027** — checkStatus cache: tạo `utils/statusCache.js` (Map + TTL 30s, `getCachedStatus/setCachedStatus/invalidateStatus`). `checkStatus` chỉ query DB khi cache miss; `invalidateStatus` gọi ở: admin ban/mute/resetScore, auto-status trong `post.service._flagForModeration` và `comment.service.createComment`.
+- ✅ **Smoke test S4: 14/14 PASS** (`logs/smoke-s4.js`): register `/auth/*` 201 + legacy `/users/*` 404, `/users/me` OK, getOrCreate song song → cùng conversation + participant_key, send message, create post qua checkStatus, comment ẩn giữ cây + content null + reply đúng parent.
+- ✅ Validate: `node --check` 11 file backend pass, ESLint frontend 0 lỗi mới.
+- ✅ Commit + push (xem git log).
 
 ## Ghi chú kỹ thuật quan trọng (đọc trước khi fix)
 - Backend entry: `app.js` (port 5000). Frontend: `frontend/` (Next.js, port 3000). AI: `ai_service/main.py` (port 8000).
