@@ -168,6 +168,23 @@
 
 ---
 
+## Bổ sung từ testing (S3 — 2026-08-12)
+
+### BUG-045 — Gửi media message không có fallback local khi thiếu Cloudinary
+- **File:** `controllers/message.controller.js` `sendMessage`
+- **Vấn đề:** Chỉ upload lên Cloudinary; khi `CLOUDINARY_API_KEY` không set → 500, không gửi được ảnh/video trong chat.
+- **Fix:** Thêm fallback lưu `/uploads/` (giống post.controller). **Đã fix (S3).**
+
+### BUG-046 — Lỗi authorization trả 500 thay vì 403
+- **File:** `services/post.service.js`, `message.service.js`, `appeal.service.js` + `utils/httpError.js`
+- **Vấn đề:** Các throw `'Unauthorized'` là plain Error → errorMiddleware trả 500 (sai semantics, lộ thông tin).
+- **Fix:** `httpError(status, message)` + gắn status 403/404. **Đã fix (S3).**
+
+### BUG-047 — Auth hoàn toàn hỏng sau BUG-012 (method extraction `this`)
+- **File:** `controllers/auth.controller.js`
+- **Vấn đề:** `this._setRefreshCookie` trong class method — Express gọi handler như function thường → `this` undefined → mọi register/login/refresh trả 400 `Cannot read properties of undefined`. Phát hiện nhờ smoke test.
+- **Fix:** Đưa `setRefreshCookie` ra ngoài class. **Đã fix (S3).**
+
 ## Dependency risks (tham chiếu)
 - Backend `npm audit`: 10 vulns (4 High: multer, socket.io-parser, ws, brace-expansion; 5 Moderate: mongoose, morgan, qs, engine.io, socket.io-adapter; 1 Low).
 - Frontend `npm audit`: 12 vulns (10 High: next <16.3.0, axios <1.18.0, postcss, sharp, form-data, js-yaml, nanoid, ws, socket.io-parser, brace-expansion).

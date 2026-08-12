@@ -52,6 +52,9 @@
 | BUG-043 | Low | P3 | ⏳ DEFERRED | — | package.json main |
 | BUG-044 | Low | P3 | ⏳ DEFERRED | — | typo "Bài đă đăng" |
 | Dependency | — | P3 | ✅ DONE | S2 | `npm audit fix`: backend 0 vulns; frontend nâng next 16.2.4→^16.3.0, axios lên 1.18+, còn 0 vulns. `next build` pass toàn bộ routes |
+| BUG-045 | High | P1 | ✅ DONE | S3 | Media message fallback local khi thiếu Cloudinary (controllers/message.controller.js) |
+| BUG-046 | Medium | P2 | ✅ DONE | S3 | Authorization error trả 403/404 qua utils/httpError.js thay vì 500 |
+| BUG-047 | Critical | P0 | ✅ DONE | S3 | Auth hỏng do `this._setRefreshCookie` (method extraction) — smoke test phát hiện, đã fix |
 
 ## Session log
 
@@ -74,6 +77,14 @@
   - `sanitize.js`: scheme `data:` chỉ còn cho img (allowedSchemesByTag).
   - `api.js`: skip refresh cho các endpoint auth (login/register/refresh) — giữ thông báo lỗi login.
   - `useSocket.js`: reset socket state khi cleanup.
+### Session 3 — 2026-08-12 (chạy 3 service + test end-to-end)
+- ✅ Khởi động cả 3 service: AI (8000, model loaded), Backend (5000, kết nối Atlas), Frontend (3000, `next start -p 3000` — lưu ý env `PORT=5000` global gây xung đột, phải ép port).
+- ✅ **Smoke test API: 23/23 PASS** — register role (BUG-002), post 3 tags (BUG-015), XSS sanitize create+update (BUG-001), PRIVATE/HIDDEN visibility (BUG-005/006), media message (BUG-014/045), IDOR conversation/message 403 (BUG-004/009), notification IDOR 404 (BUG-008), socket auth + chống rò rỉ tin nhắn (BUG-003). Script: `logs/smoke-api.js` (gitignored).
+- ✅ Phát hiện & fix **BUG-047** (auth hỏng hoàn toàn — code đã commit), **BUG-045**, **BUG-046**.
+- ✅ Frontend: 6 route chính trả 200, không lỗi log, `next build` pass.
+- ⚠️ Browser automation (browser-use) KHÔNG khả dụng trong môi trường này — UI interactions không test trực quan được; đã thay bằng test API = đúng các network call UI gọi. Test data (u1_/u2_/u3_/evil_, post test, conversation) còn trong DB Atlas — dev data.
+- **Bước tiếp theo:** fix 15 DEFERRED còn lại (xem CLAUDE.md).
+
 ### Session 2 — 2026-08-12 (vá dependency)
 - ✅ `npm audit fix` backend: **0 vulnerabilities** (multer, socket.io-parser, ws, mongoose, morgan, qs... đã vá qua lockfile).
 - ✅ `npm audit fix` frontend + nâng `next` 16.2.4 → `^16.3.0` (fix SSRF/DoS/middleware-bypass của next, postcss, sharp): **0 vulnerabilities**.
