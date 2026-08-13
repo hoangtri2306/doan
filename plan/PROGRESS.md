@@ -163,6 +163,7 @@
 - ✅ **Smoke test S7: 13/13 PASS** (`logs/smoke-s7.js`): 8 case status code + 3 case AI key + create post qua AI có key → 201. Follow/unfollow user thật vẫn 200.
 - ✅ Validate: `node --check` 8 file backend + `py_compile` AI pass. Backend log không có error.
 - 📌 Lưu ý vận hành: khởi động AI service phải dùng `env AI_PORT=8000 python ai_service/main.py` (nếu shell có biến `PORT` khác sẽ làm backend bind sai port — dotenv không ghi đè env đã tồn tại).
+- ✅ **Re-test CDP sau S7 (JWT rotation + status-code fixes): `logs/cdp-test.js` → 17/17 PASS** — register UI, navbar đã đăng nhập, /messages mobile placeholder, /profile/edit form điền đúng username (không rỗng), /admin/users pagination "Trang 1". Backend log không error, 3 service healthy. Không regression từ các fix S7.
 
 ## Ghi chú kỹ thuật quan trọng (đọc trước khi fix)
 - Backend entry: `app.js` (port 5000). Frontend: `frontend/` (Next.js, port 3000). AI: `ai_service/main.py` (port 8000).
