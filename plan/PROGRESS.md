@@ -137,6 +137,33 @@
 - ✅ Backend log không có error trong lúc test; cả 3 service healthy (AI model_loaded, backend/frontend HTTP 200).
 - 📌 Không có source change mới trong session này (chỉ rebuild + test script); không cần commit mới.
 
+### Session 7 — 2026-08-13 (fix status codes + validation còn sót + 2 Low)
+> Nguồn phát hiện: scan lại toàn bộ project sau S6 (không phải từ bộ bug gốc 44 — đã sạch 100%).
+> **Nguyên nhân gốc:** BUG-046 chỉ chuyển một phần sang `httpError()` — các service còn lại vẫn `throw new Error()` → errorMiddleware map mọi error không có `.status` thành **500**. Cũng có **ghost follow** (follow user không tồn tại vẫn 200 → dữ liệu rác).
+
+#### 🟠 Medium — status code & validation (xác nhận bằng API thật)
+| # | Vấn đề | Fix | Smoke test |
+|---|--------|-----|-----------|
+| 1 | Like/bookmark target không tồn tại → 500 (nên 404); type lạ → 500 (nên 400) | `services/interaction.service.js`: `httpError(404/400)` | 404 & 400 ✅ |
+| 2 | Self-follow → 500 (nên 400) | `services/follow.service.js`: `httpError(400)` | 400 ✅ |
+| 3 | **Ghost follow**: follow user không tồn tại → vẫn 200 | `follow.service.js`: kiểm tra `User.findById(following_id)` + `isDeleted` → `httpError(404)` | 404 ✅ (+ follow thật vẫn 200) |
+| 4 | Appeal: nội dung không tồn tại → 500; trùng appeal / đã xử lý / target_model lạ → 500 | `services/appeal.service.js`: `httpError(404/400)` (cả approveAppeal + rejectAppeal) | 404 ✅ |
+| 5 | Moderation: queue item không tồn tại / đã review / target đã xóa → 500 | `services/moderation.service.js` `_assertProcessable`: `httpError(404/400)` | 404 ✅ |
+| 6 | Conversation/message không tồn tại → 500 (getMessages, reactToMessage) | `services/message.service.js`: `httpError(404)` | 404 ✅ |
+| 7 | Repost post gốc không tồn tại / PRIVATE / bài của mình → 500 | `services/post.service.js` `repostPost`: `httpError(404/400)` | 404 ✅ |
+| 8 | Update profile username sai format → 500 (nên 400) | `services/user.service.js`: `httpError(400)` | 400 ✅ |
+
+#### 🔵 Low
+| # | Vấn đề | Fix | Smoke test |
+|---|--------|-----|-----------|
+| 9 | **JWT secrets yếu trong `.env`** (`access_secret_key`) | Xoay thành secret ngẫu nhiên 64 ký tự (script `logs/rotate-env.js`); tạo `.env.example` + `frontend/.env.local.example` (docs env vars) | — |
+| 10 | **AI service chưa có API key** (phần tùy chọn của BUG-016 chưa làm) | `ai_service/main.py`: nếu set `AI_API_KEY` thì `/analyze` bắt buộc header `X-API-Key` (đọc từ env, fallback root `.env`; `/health` vẫn mở); `services/ai.service.js` gửi header khi backend có key | no key→401, sai→401, đúng→200 ✅ |
+
+- ⚠️ **JWT secrets đã xoay → toàn bộ token cũ hết hạn, mọi user phải login lại 1 lần** (refresh cookie cũng vô hiệu — ký bằng secret cũ).
+- ✅ **Smoke test S7: 13/13 PASS** (`logs/smoke-s7.js`): 8 case status code + 3 case AI key + create post qua AI có key → 201. Follow/unfollow user thật vẫn 200.
+- ✅ Validate: `node --check` 8 file backend + `py_compile` AI pass. Backend log không có error.
+- 📌 Lưu ý vận hành: khởi động AI service phải dùng `env AI_PORT=8000 python ai_service/main.py` (nếu shell có biến `PORT` khác sẽ làm backend bind sai port — dotenv không ghi đè env đã tồn tại).
+
 ## Ghi chú kỹ thuật quan trọng (đọc trước khi fix)
 - Backend entry: `app.js` (port 5000). Frontend: `frontend/` (Next.js, port 3000). AI: `ai_service/main.py` (port 8000).
 - **Auth hiện tại:** frontend dùng `/api/auth/*`. Refresh token nằm trong **httpOnly cookie** (đã cài cookie-parser, sameSite lax). Frontend KHÔNG còn lưu refreshToken trong localStorage. Cookie cũ từ trước fix sẽ hết hạn sau 7 ngày — user phải login lại 1 lần.
