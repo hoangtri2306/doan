@@ -1,5 +1,6 @@
 const interactionRepository = require('../repositories/interaction.repo');
 const notificationService = require('./notification.service');
+const { httpError } = require('../utils/httpError');
 
 class InteractionService {
   // BUG-028: kiểm tra target tồn tại + chặn type REPOST qua endpoint này
@@ -8,21 +9,21 @@ class InteractionService {
     const Comment = require('../models/Comment');
     if (target_model === 'Post') {
       const p = await Post.findById(target_id);
-      if (!p) throw new Error('Post not found');
+      if (!p) throw httpError(404, 'Post not found');
     } else if (target_model === 'Comment') {
       const c = await Comment.findById(target_id);
-      if (!c) throw new Error('Comment not found');
+      if (!c) throw httpError(404, 'Comment not found');
     } else {
-      throw new Error('Invalid target model');
+      throw httpError(400, 'Invalid target model');
     }
   }
 
   async interact(user_id, target_id, target_model, type) {
     if (type === 'REPOST') {
-      throw new Error('Use the repost endpoint instead');
+      throw httpError(400, 'Use the repost endpoint instead');
     }
     if (!['LIKE', 'BOOKMARK'].includes(type)) {
-      throw new Error('Invalid interaction type');
+      throw httpError(400, 'Invalid interaction type');
     }
     await this._validateTarget(target_id, target_model);
 

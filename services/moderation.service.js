@@ -1,4 +1,5 @@
 const moderationRepository = require('../repositories/moderation.repo');
+const { httpError } = require('../utils/httpError');
 
 class ModerationService {
   async reportContent(reporter_id, data) {
@@ -32,12 +33,12 @@ class ModerationService {
 
   // BUG-031: chỉ xử lý item PENDING và target còn tồn tại
   async _assertProcessable(item) {
-    if (!item) throw new Error('Queue item not found');
-    if (item.status !== 'PENDING') throw new Error('Queue item already reviewed');
+    if (!item) throw httpError(404, 'Queue item not found');
+    if (item.status !== 'PENDING') throw httpError(400, 'Queue item already reviewed');
 
     const model = item.target_model === 'Comment' ? require('../models/Comment') : require('../models/Post');
     const target = await model.findById(item.target_id);
-    if (!target) throw new Error('Target content no longer exists');
+    if (!target) throw httpError(404, 'Target content no longer exists');
   }
 
   async approve(queueId) {

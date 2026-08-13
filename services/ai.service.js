@@ -26,7 +26,11 @@ class AIService {
 
       const response = await fetch(`${AI_SERVICE_URL}/analyze`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          // BUG-016 (S7): gửi API key nếu backend có cấu hình (AI service tự bỏ qua nếu không set)
+          ...(process.env.AI_API_KEY ? { 'X-API-Key': process.env.AI_API_KEY } : {})
+        },
         body: JSON.stringify({ text: text.trim() }),
         signal: controller.signal
       });

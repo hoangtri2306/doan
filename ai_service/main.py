@@ -11,7 +11,7 @@ import torch
 import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Header, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
@@ -28,6 +28,26 @@ logger = logging.getLogger(__name__)
 # ── Config ────────────────────────────────────────────────────────────────────
 MODEL_DIR = Path(__file__).parent.parent / "final_model"
 PORT = int(os.environ.get("AI_PORT", 8000))
+
+# BUG-016 (S7): API key tùy chọn — nếu set AI_API_KEY thì /analyze bắt buộc header X-API-Key.
+# Đọc từ env; nếu chưa có, thử đọc project root .env (để local dev không cần export thủ công).
+if not os.environ.get("AI_API_KEY"):
+    root_env = Path(__file__).parent.parent / ".env"
+    if root_env.exists():
+        for line in root_env.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                k, _, v = line.partition("=")
+                if k.strip() == "AI_API_KEY":
+                    os.environ["AI_API_KEY"] = v.strip().strip('"').strip("'")
+                    break
+
+AI_API_KEY = os.environ.get("AI_API_KEY", "")
+
+def require_api_key(x_api_key: str = Header(default="")) -> None:
+    """Chặn request thiếu/sai key khi AI_API_KEY được cấu hình."""
+    if AI_API_KEY and x_api_key != AI_API_KEY:
+        raise HTTPException(status_code=401, detail="Invalid or missing API key")
 
 # Threshold để quyết định label (dựa trên kết quả test)
 SPAM_THRESHOLD = 0.5    # LABEL_1 (L1)
@@ -118,7 +138,7 @@ async def health():
         }
     }
 
-@app.post("/analyze", response_model=AnalyzeResponse)
+@app.post("/analyze", response_model=AnalyzeResponse, dependencies=[Depends(require_api_key)])
 async def analyze(req: AnalyzeRequest):
     if model is None or tokenizer is None:
         raise HTTPException(status_code=503, detail="Model not loaded yet")

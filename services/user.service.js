@@ -1,4 +1,5 @@
 const userRepository = require('../repositories/user.repo');
+const { httpError } = require('../utils/httpError');
 
 // BUG-018: register/login/refreshToken đã được gộp về services/auth.service.js.
 // user.service chỉ xử lý profile/user data (không còn bcrypt/jwt ở đây).
@@ -19,10 +20,10 @@ class UserService {
       // BUG-036: validate username trước khi lưu (tránh rỗng / quá dài / ký tự đặc biệt)
       const username = String(data.username).trim();
       if (username.length < 3 || username.length > 30) {
-        throw new Error('Username phải từ 3 đến 30 ký tự');
+        throw httpError(400, 'Username phải từ 3 đến 30 ký tự');
       }
       if (!/^[a-zA-Z0-9_.-]+$/.test(username)) {
-        throw new Error('Username chỉ được chứa chữ, số, dấu chấm, gạch dưới, gạch ngang');
+        throw httpError(400, 'Username chỉ được chứa chữ, số, dấu chấm, gạch dưới, gạch ngang');
       }
       updateData.username = username;
     }

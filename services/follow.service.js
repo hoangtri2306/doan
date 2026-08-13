@@ -1,10 +1,18 @@
 const followRepository = require('../repositories/follow.repo');
 const notificationService = require('./notification.service');
+const { httpError } = require('../utils/httpError');
 
 class FollowService {
   async toggleFollow(follower_id, following_id) {
     if (follower_id.toString() === following_id.toString()) {
-      throw new Error('You cannot follow yourself');
+      throw httpError(400, 'You cannot follow yourself');
+    }
+
+    // S7: chặn ghost follow — user được follow phải tồn tại (chưa bị xóa)
+    const User = require('../models/User');
+    const target = await User.findById(following_id);
+    if (!target || target.isDeleted) {
+      throw httpError(404, 'User not found');
     }
 
     const existing = await followRepository.findFollow(follower_id, following_id);

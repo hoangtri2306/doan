@@ -68,9 +68,9 @@ class PostService {
     }
 
     const originalPost = await postRepository.findById(original_post_id);
-    if (!originalPost) throw new Error('Original post not found');
-    if (originalPost.visibility === 'PRIVATE') throw new Error('Cannot repost a private post');
-    if (originalPost.author._id.toString() === user_id.toString()) throw new Error('Cannot repost your own post');
+    if (!originalPost) throw httpError(404, 'Original post not found');
+    if (originalPost.visibility === 'PRIVATE') throw httpError(400, 'Cannot repost a private post');
+    if (originalPost.author._id.toString() === user_id.toString()) throw httpError(400, 'Cannot repost your own post');
     
     const postData = {
       author: user_id,

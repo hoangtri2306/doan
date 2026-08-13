@@ -32,7 +32,7 @@ class MessageService {
   async getMessages(conversationId, userId) {
     // Check if user is part of conversation
     const conversation = await conversationRepo.findById(conversationId);
-    if (!conversation) throw new Error('Conversation not found');
+    if (!conversation) throw httpError(404, 'Conversation not found');
     
     const isParticipant = conversation.participants.some(p => p._id.toString() === userId.toString());
     if (!isParticipant) throw httpError(403, 'Unauthorized');
@@ -62,7 +62,7 @@ class MessageService {
     const Message = require('../models/Message');
     const Conversation = require('../models/Conversation');
     const message = await Message.findById(messageId);
-    if (!message) throw new Error('Message not found');
+    if (!message) throw httpError(404, 'Message not found');
 
     // BUG-009: chỉ participant của hội thoại mới được react
     const conversation = await Conversation.findById(message.conversation_id);

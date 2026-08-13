@@ -12,25 +12,25 @@ class AppealService {
     if (target_model === 'Post') {
       const Post = require('../models/Post');
       const post = await Post.findById(target_id).select('author');
-      if (!post) throw new Error('Nội dung không tồn tại.');
+      if (!post) throw httpError(404, 'Nội dung không tồn tại.');
       if (post.author.toString() !== user_id.toString()) {
         throw httpError(403, 'Bạn không thể kháng cáo nội dung của người khác.');
       }
     } else if (target_model === 'Comment') {
       const Comment = require('../models/Comment');
       const comment = await Comment.findById(target_id).select('author');
-      if (!comment) throw new Error('Nội dung không tồn tại.');
+      if (!comment) throw httpError(404, 'Nội dung không tồn tại.');
       if (comment.author.toString() !== user_id.toString()) {
         throw httpError(403, 'Bạn không thể kháng cáo nội dung của người khác.');
       }
     } else {
-      throw new Error('Loại nội dung không hợp lệ.');
+      throw httpError(400, 'Loại nội dung không hợp lệ.');
     }
 
     // Kiểm tra đã kháng cáo chưa
     const existing = await appealRepository.findExisting(user_id, target_id);
     if (existing) {
-      throw new Error('Bạn đã gửi kháng cáo cho nội dung này và đang chờ xem xét.');
+      throw httpError(400, 'Bạn đã gửi kháng cáo cho nội dung này và đang chờ xem xét.');
     }
 
     const appeal = await appealRepository.create({
@@ -72,8 +72,8 @@ class AppealService {
    */
   async approveAppeal(appeal_id, admin_id, admin_note = '') {
     const appeal = await appealRepository.findById(appeal_id);
-    if (!appeal) throw new Error('Kháng cáo không tồn tại');
-    if (appeal.status !== 'PENDING') throw new Error('Kháng cáo này đã được xử lý');
+    if (!appeal) throw httpError(404, 'Kháng cáo không tồn tại');
+    if (appeal.status !== 'PENDING') throw httpError(400, 'Kháng cáo này đã được xử lý');
 
     // Khôi phục nội dung bị ẩn
     if (appeal.target_model === 'Post') {
@@ -119,8 +119,8 @@ class AppealService {
    */
   async rejectAppeal(appeal_id, admin_id, admin_note = '') {
     const appeal = await appealRepository.findById(appeal_id);
-    if (!appeal) throw new Error('Kháng cáo không tồn tại');
-    if (appeal.status !== 'PENDING') throw new Error('Kháng cáo này đã được xử lý');
+    if (!appeal) throw httpError(404, 'Kháng cáo không tồn tại');
+    if (appeal.status !== 'PENDING') throw httpError(400, 'Kháng cáo này đã được xử lý');
 
     const updated = await appealRepository.update(appeal_id, {
       status: 'REJECTED',
